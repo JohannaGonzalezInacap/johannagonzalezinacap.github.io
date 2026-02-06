@@ -228,7 +228,7 @@ async function getOneSignalState() {
   }
 
   const permission = await OneSignal.Notifications.permission;
-  const userId = await OneSignal.User.PushSubscription.getId();
+  const userId = OneSignal.User.PushSubscription.id;
 
   return { userId, permission };
 }
