@@ -197,7 +197,7 @@ function ensureOneSignal() {
   appId: ONE_SIGNAL_APP_ID,
 
   serviceWorkerPath: "/OneSignalSDKWorker.js",
-  serviceWorkerUpdaterPath: "/OneSignalSDKWorker.js",
+  serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
   serviceWorkerParam: { scope: "/" }
 });
 
@@ -227,7 +227,7 @@ async function getOneSignalState() {
     return { userId: null, permission: Notification.permission };
   }
 
-  const permission = await OneSignal.Notifications.getPermissionState();
+  const permission = await OneSignal.Notifications.permission;
   const userId = await OneSignal.User.getId();
 
   return { userId, permission };
