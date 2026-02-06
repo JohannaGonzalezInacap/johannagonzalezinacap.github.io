@@ -1,18 +1,19 @@
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
+const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 
-const admin = require("firebase-admin");
+const fetch = require("node-fetch");
 
 setGlobalOptions({ maxInstances: 10 });
 
-// Inicializa Firebase Admin
-admin.initializeApp();
+// Secret para la REST API Key de OneSignal (configurada en Firebase Secret Manager)
+const ONESIGNAL_REST_API_KEY = defineSecret("ONESIGNAL_REST_API_KEY");
 
-// Endpoint para enviar notificaciones push
-exports.sendPush = onRequest(async (req, res) => {
+// Endpoint para enviar notificaciones push usando OneSignal
+exports.sendPush = onRequest({ secrets: [ONESIGNAL_REST_API_KEY] }, async (req, res) => {
 
-  // Permitir CORS para tu frontend en GitHub Pages
+  // CORS
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type");
@@ -23,30 +24,53 @@ exports.sendPush = onRequest(async (req, res) => {
 
   try {
 
-    const { token, title, body } = req.body;
+    const { oneSignalUserId, title, body } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ error: "Falta token" });
+    if (!oneSignalUserId) {
+      return res.status(400).json({ error: "Falta oneSignalUserId" });
     }
 
-    const message = {
-      token: token,
-      notification: {
-        title: title || "Recordatorio",
-        body: body || "Es hora de tu medicamento"
+    const ONESIGNAL_APP_ID = "ffe2c521-45f5-4e2e-b8c7-41c14b149f1b";
+
+    const restApiKey = ONESIGNAL_REST_API_KEY.value();
+
+    if (!restApiKey) {
+      return res.status(500).json({
+        error: "No está configurada la REST API KEY de OneSignal"
+      });
+    }
+
+    const payload = {
+      app_id: ONESIGNAL_APP_ID,
+      include_aliases: {
+        onesignal_id: [oneSignalUserId]
       },
-      webpush: {
-        fcmOptions: {
-          link: "https://johannagonzalezinacap.github.io/med-reminder/"
-        }
-      }
+      headings: {
+        es: title || "Recordatorio"
+      },
+      contents: {
+        es: body || "Es hora de tu medicamento"
+      },
+      url: "https://johannagonzalezinacap.github.io/med-reminder/"
     };
 
-    const response = await admin.messaging().send(message);
+    const response = await fetch(
+      "https://onesignal.com/api/v1/notifications",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${restApiKey}`
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const data = await response.json();
 
     return res.json({
       success: true,
-      response
+      data
     });
 
   } catch (error) {
