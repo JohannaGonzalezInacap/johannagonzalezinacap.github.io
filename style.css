@@ -1,0 +1,162 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f4f6f8;
+}
+
+h1 {
+  color: #333;
+}
+
+form input, form button {
+  padding: 8px;
+  margin: 5px;
+}
+
+li {
+  background: white;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+}
+
+.historial-filtros {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+#historialLista ul {
+  padding-left: 18px;
+}
+
+#historialLista li {
+  margin-bottom: 4px;
+}
+
+.settings {
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 10px 0 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.settings label {
+  display: block;
+  margin: 6px 0;
+}
+
+.settings .inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notif-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#notifStatus {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.push-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.push-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.push-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#pushData {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 0.9rem;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+#pushStatus {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+#calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 15px;
+}
+
+.dia {
+  padding: 10px;
+  background: #e0e0e0;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.consumido {
+  background: #8bc34a;
+  color: white;
+  font-weight: bold;
+}
+
+.alert-box {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  display: none;
+}
+
+.alert-error {
+  display: block;
+  color: #b71c1c;
+  font-size: 1.15rem;
+}
+
+.alert-warn {
+  display: block;
+  color: #e65100;
+  font-size: 1.12rem;
+}
+
+.alert-success {
+  display: block;
+  color: #1b5e20;
+  font-size: 1.12rem;
+}
+
+.alert-umbral {
+  display: block;
+  color: #fff;
+  background: #c62828;
+  font-size: 1.18rem;
+  animation: parpadeo 1s infinite;
+}
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}

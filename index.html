@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="theme-color" content="#4caf50">
+    <link rel="manifest" href="manifest.json">
+  <title>Recordatorio de Medicamentos</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+
+</head>
+<body>
+
+  <h1>💊 Mis Medicamentos</h1>
+
+  <div id="alerta" class="alert-box" aria-live="polite"></div>
+
+  <section class="settings">
+    <h2>⚙️ Alertas</h2>
+    <div class="notif-row">
+      <button type="button" id="notifBtn">Activar notificaciones</button>
+      <span id="notifStatus" aria-live="polite"></span>
+    </div>
+    <div class="push-row">
+      <div class="push-actions">
+        <button type="button" id="pushBtn">Activar recordatorios push</button>
+        <span id="pushStatus" aria-live="polite"></span>
+      </div>
+      <label class="push-label">ID de suscripción (OneSignal) para enviar avisos:
+        <textarea id="pushData" readonly rows="4" placeholder="Aún no hay suscripción activa"></textarea>
+      </label>
+    </div>
+    <label>
+      Número WhatsApp (solo dígitos):
+      <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="56912345678">
+    </label>
+    <label class="inline">
+      <input type="checkbox" id="waAuto"> Enviar alerta de umbral a WhatsApp automáticamente
+    </label>
+    <small>Se abrirá WhatsApp Web/móvil con el mensaje prellenado al llegar al umbral.</small>
+  </section>
+
+  <form id="medForm">
+    <input type="text" id="nombre" placeholder="Nombre del medicamento" required>
+    <input type="number" id="stock" placeholder="Stock inicial" required>
+    <input type="number" id="dosis" placeholder="Dosis diaria" required>
+    <button type="submit">Agregar</button>
+  </form>
+
+  <ul id="listaMedicamentos"></ul>
+
+  <h2>📅 Calendario de consumo</h2>
+  <label>
+  Ver calendario de:
+  <select id="filtroMedicamento"></select>
+    </label>
+
+<div id="calendario"></div>
+
+  <h2>🗂️ Historial</h2>
+  <div class="historial-filtros">
+    <label>Medicamento:
+      <select id="filtroHistMed"></select>
+    </label>
+    <label>Mes:
+      <input type="month" id="filtroHistMes">
+    </label>
+  </div>
+  <div id="historialLista"></div>
+
+  <footer style="margin-top:20px; font-size:0.9rem;">
+    <a href="privacy-policy.md" target="_blank">Política de Privacidad / Privacy Policy</a>
+  </footer>
+ 
+</body>
+</html>
