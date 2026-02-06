@@ -193,12 +193,11 @@ function ensureOneSignal() {
   oneSignalReady = new Promise((resolve, reject) => {
     window.OneSignalDeferred.push(async function(OneSignal) {
       try {
-        const origin = window.location.origin;
         await OneSignal.init({
   appId: ONE_SIGNAL_APP_ID,
 
-  serviceWorkerPath: `${origin}/OneSignalSDKWorker.js`,
-  serviceWorkerUpdaterPath: `${origin}/OneSignalSDKUpdaterWorker.js`,
+  serviceWorkerPath: "/OneSignalSDKWorker.js",
+  serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
   serviceWorkerParam: { scope: "/" }
 });
 
