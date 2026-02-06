@@ -195,10 +195,13 @@ function ensureOneSignal() {
       try {
         await OneSignal.init({
   appId: ONE_SIGNAL_APP_ID,
+
   serviceWorkerPath: "/OneSignalSDKWorker.js",
-  serviceWorkerParam: { scope: "/" },
-  allowLocalhostAsSecureOrigin: true
+  serviceWorkerUpdaterPath: "/OneSignalSDKWorker.js",
+  serviceWorkerParam: { scope: "/" }
 });
+
+
 
 resolve(OneSignal);
       } catch (err) {
