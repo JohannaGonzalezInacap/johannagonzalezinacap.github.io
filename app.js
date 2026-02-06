@@ -196,9 +196,9 @@ function ensureOneSignal() {
         await OneSignal.init({
   appId: ONE_SIGNAL_APP_ID,
 
-  serviceWorkerPath: "OneSignalSDKWorker.js",
-  serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
-  serviceWorkerParam: { scope: "./" }
+  serviceWorkerPath: "/OneSignalSDKWorker.js",
+  serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
+  serviceWorkerParam: { scope: "/" }
 });
 
 
