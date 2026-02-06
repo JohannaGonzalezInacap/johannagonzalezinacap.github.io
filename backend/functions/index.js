@@ -1,17 +1,13 @@
 const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
-const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 
 const fetch = require("node-fetch");
 
 setGlobalOptions({ maxInstances: 10 });
 
-// Secret para la REST API Key de OneSignal (configurada en Firebase Secret Manager)
-const ONESIGNAL_REST_API_KEY = defineSecret("ONESIGNAL_REST_API_KEY");
-
 // Endpoint para enviar notificaciones push usando OneSignal
-exports.sendPush = onRequest({ secrets: [ONESIGNAL_REST_API_KEY] }, async (req, res) => {
+exports.sendPush = onRequest(async (req, res) => {
 
   // CORS
   res.set("Access-Control-Allow-Origin", "*");
@@ -32,7 +28,7 @@ exports.sendPush = onRequest({ secrets: [ONESIGNAL_REST_API_KEY] }, async (req, 
 
     const ONESIGNAL_APP_ID = "ffe2c521-45f5-4e2e-b8c7-41c14b149f1b";
 
-    const restApiKey = ONESIGNAL_REST_API_KEY.value();
+    const restApiKey = require("firebase-functions").config().onesignal?.rest_api_key;
 
     if (!restApiKey) {
       return res.status(500).json({
