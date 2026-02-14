@@ -2,11 +2,14 @@ const { setGlobalOptions } = require("firebase-functions");
 const { onRequest } = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
 
-const fetch = require("node-fetch");
+const admin = require("firebase-admin");
 
 setGlobalOptions({ maxInstances: 10 });
 
-// Endpoint para enviar notificaciones push usando OneSignal
+// Inicializa Firebase Admin
+admin.initializeApp();
+
+// Endpoint para enviar notificaciones push via FCM
 exports.sendPush = onRequest(async (req, res) => {
 
   // CORS
@@ -20,53 +23,30 @@ exports.sendPush = onRequest(async (req, res) => {
 
   try {
 
-    const { oneSignalUserId, title, body } = req.body;
+    const { token, title, body } = req.body;
 
-    if (!oneSignalUserId) {
-      return res.status(400).json({ error: "Falta oneSignalUserId" });
+    if (!token) {
+      return res.status(400).json({ error: "Falta token" });
     }
 
-    const ONESIGNAL_APP_ID = "ffe2c521-45f5-4e2e-b8c7-41c14b149f1b";
-
-    const restApiKey = require("firebase-functions").config().onesignal?.rest_api_key;
-
-    if (!restApiKey) {
-      return res.status(500).json({
-        error: "No está configurada la REST API KEY de OneSignal"
-      });
-    }
-
-    const payload = {
-      app_id: ONESIGNAL_APP_ID,
-      include_aliases: {
-        onesignal_id: [oneSignalUserId]
+    const message = {
+      token,
+      notification: {
+        title: title || "Recordatorio",
+        body: body || "Es hora de tu medicamento"
       },
-      headings: {
-        es: title || "Recordatorio"
-      },
-      contents: {
-        es: body || "Es hora de tu medicamento"
-      },
-      url: "https://johannagonzalezinacap.github.io/med-reminder/"
+      webpush: {
+        fcmOptions: {
+          link: "https://johannagonzalezinacap.github.io/med-reminder/"
+        }
+      }
     };
 
-    const response = await fetch(
-      "https://onesignal.com/api/v1/notifications",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Basic ${restApiKey}`
-        },
-        body: JSON.stringify(payload)
-      }
-    );
-
-    const data = await response.json();
+    const response = await admin.messaging().send(message);
 
     return res.json({
       success: true,
-      data
+      response
     });
 
   } catch (error) {
