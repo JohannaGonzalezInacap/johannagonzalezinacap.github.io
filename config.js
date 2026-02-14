@@ -11,6 +11,6 @@
       appId: "1:1022485074157:web:8c8c0f8c8c8c8c8c8c8c8c",
       measurementId: "G-MEASUREMENT_ID"
     },
-    vapidKey: "TBKFNRtTEhfw0Q5j27w-3Lr7hDU3AG-cWxKv7NZqcrFtguRIMt268yIMsSft4mabJyAGrKET_WRlEntldbE_GM0A"
+    vapidKey: "BKFNRtTEhfw0Q5j27w-3Lr7hDU3AG-cWxKv7NZqcrFtguRIMt268yIMsSft4mabJyAGrKET_WRlEntldbE_GM0A"
   };
 })();
