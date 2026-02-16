@@ -200,7 +200,7 @@ function setupInstallPrompt() {
   if (isStandaloneDisplay()) {
     setInstallStatus("App instalada");
     if (installBtn) {
-      installBtn.hidden = false;
+      installBtn.hidden = true;
       installBtn.disabled = true;
       installBtn.textContent = "Instalada";
     }
@@ -227,8 +227,7 @@ function setupInstallPrompt() {
       const choice = await deferredInstallPrompt.userChoice;
       if (choice?.outcome === "accepted") {
         setInstallStatus("Instalando...");
-        installBtn.disabled = true;
-        installBtn.textContent = "Instalando...";
+        installBtn.hidden = true;
       } else {
         setInstallStatus("Instalación cancelada");
       }
@@ -241,7 +240,7 @@ function setupInstallPrompt() {
     if (installBtn) {
       installBtn.disabled = true;
       installBtn.textContent = "Instalada";
-      installBtn.hidden = false;
+      installBtn.hidden = true;
     }
   });
 }
@@ -262,12 +261,14 @@ function renderNotifStatus() {
   const perm = Notification.permission;
   if (perm === "granted") {
     notifStatus.textContent = "Notificaciones activadas.";
-    notifBtn.textContent = "Revisar permisos";
+    notifBtn.hidden = true;
   } else if (perm === "denied") {
     notifStatus.textContent = "Bloqueadas por el navegador. Habilítalas en ajustes.";
+    notifBtn.hidden = false;
     notifBtn.textContent = "Volver a intentar";
   } else {
     notifStatus.textContent = "Pendientes de activar.";
+    notifBtn.hidden = false;
     notifBtn.textContent = "Activar notificaciones";
   }
 }
@@ -308,6 +309,12 @@ function renderPushUI(token, permission) {
   pushStatus.textContent = isReady
     ? "Firebase Cloud Messaging listo."
     : "Pendiente de activar.";
+
+  if (isReady) {
+    pushBtn.hidden = true;
+  } else {
+    pushBtn.hidden = false;
+  }
 }
 
 async function registerTokenRemote(token) {

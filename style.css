@@ -221,6 +221,26 @@ li {
   border: 1px solid #e0e0e0;
 }
 
+.action-btn {
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.action-btn:hover:enabled {
+  background: #256628;
+}
+
+.action-btn:disabled {
+  background: #9e9e9e;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
 .wa-box {
   border: 1px solid #c5e1a5;
   background: #f9fff5;
