@@ -28,6 +28,12 @@ let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
   entries: {}
 };
 
+function setActionButtonState(btn, isDone, labelDone, labelDefault) {
+  if (!btn) return;
+  btn.textContent = isDone ? labelDone : labelDefault;
+  btn.disabled = isDone;
+}
+
 // 🔒 Normalizar datos antiguos (muy importante)
 medicamentos = medicamentos.map(med => ({
   ...med,
@@ -123,13 +129,13 @@ function renderNotifStatus() {
   const perm = Notification.permission;
   if (perm === "granted") {
     notifStatus.textContent = "Notificaciones activadas.";
-    notifBtn.textContent = "Revisar permisos";
+    setActionButtonState(notifBtn, true, "Notificaciones activadas", "Activar notificaciones");
   } else if (perm === "denied") {
     notifStatus.textContent = "Bloqueadas por el navegador. Habilítalas en ajustes.";
-    notifBtn.textContent = "Volver a intentar";
+    setActionButtonState(notifBtn, false, "", "Volver a intentar");
   } else {
     notifStatus.textContent = "Pendientes de activar.";
-    notifBtn.textContent = "Activar notificaciones";
+    setActionButtonState(notifBtn, false, "", "Activar notificaciones");
   }
 }
 
@@ -166,7 +172,7 @@ function renderPushUI(token, permission) {
   }
 
   pushBtn.disabled = false;
-  pushBtn.textContent = isReady ? "Suscripción FCM activa" : "Activar recordatorios push";
+  setActionButtonState(pushBtn, isReady, "Suscripción FCM activa", "Activar recordatorios push");
   pushStatus.textContent = isReady
     ? "Firebase Cloud Messaging listo. Usa el token para enviar avisos."
     : "Pendiente de activar.";
