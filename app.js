@@ -162,7 +162,7 @@ function renderPushUI(token, permission) {
   const perm = permission || Notification.permission;
   const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey;
   const hasVapid = Boolean(VAPID_KEY);
-  const isReady = Boolean(token) && perm === "granted";
+  const isReady = Boolean(token);
 
   if (!hasConfig || !hasVapid) {
     pushStatus.textContent = "Configura firebaseConfig y vapidKey en config.js";
@@ -174,7 +174,7 @@ function renderPushUI(token, permission) {
   pushBtn.disabled = false;
   setActionButtonState(pushBtn, isReady, "Suscripción FCM activa", "Activar recordatorios push");
   pushStatus.textContent = isReady
-    ? "Firebase Cloud Messaging listo. Usa el token para enviar avisos."
+    ? "Firebase Cloud Messaging listo."
     : "Pendiente de activar.";
   pushData.value = isReady ? JSON.stringify({ token }, null, 2) : "";
 }
