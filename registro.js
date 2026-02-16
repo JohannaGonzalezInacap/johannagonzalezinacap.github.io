@@ -9,14 +9,14 @@
   const STORAGE_KEY = "userProfile";
 
   const PLACEHOLDER_MAP = {
-    "56": "Ej: +56 9 1234 5678",
-    "58": "Ej: +58 412 1234567",
-    "1": "Ej: +1 773 123 4567",
-    "34": "Ej: +34 612 345 678",
-    "52": "Ej: +52 5512345678",
-    "57": "Ej: +57 3012345678",
-    "51": "Ej: +51 987654321",
-    "": "Incluye tu código de país y número"
+    "56": "Ej: 56912345678",
+    "58": "Ej: 584121234567",
+    "1": "Ej: 17731234567",
+    "34": "Ej: 34612345678",
+    "52": "Ej: 525512345678",
+    "57": "Ej: 573012345678",
+    "51": "Ej: 51987654321",
+    "": "Incluye tu código de país y número (solo dígitos)"
   };
 
   function setInitialValues() {
