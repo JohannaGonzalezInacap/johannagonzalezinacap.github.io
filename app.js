@@ -1,6 +1,9 @@
 const form = document.getElementById("medForm");
 const lista = document.getElementById("listaMedicamentos");
+const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
+const waAddBtn = document.getElementById("waAddBtn");
+const waList = document.getElementById("waList");
 const waAutoInput = document.getElementById("waAuto");
 const notifBtn = document.getElementById("notifBtn");
 const notifStatus = document.getElementById("notifStatus");
@@ -21,8 +24,20 @@ const REGISTER_TOKEN_URL = "https://registertoken-upmcmldjtq-uc.a.run.app";
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
   whatsNumber: "",
+  whatsCountry: "56",
+  whatsNumbers: [],
   autoWhats: false
 };
+settings.whatsCountry = settings.whatsCountry || "56";
+if (!Array.isArray(settings.whatsNumbers)) settings.whatsNumbers = [];
+// Migrar número único previo a la nueva lista
+if (settings.whatsNumber) {
+  settings.whatsNumbers.push({
+    country: normalizePhone(settings.whatsCountry || ""),
+    local: normalizePhone(settings.whatsNumber)
+  });
+  settings.whatsNumber = "";
+}
 let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
   date: hoy(),
   entries: {}
@@ -111,6 +126,30 @@ function normalizeHora(h) {
     if (!p) return "";
     return p.replace(/\D+/g, "");
   }
+
+function buildFullPhone(countryCode, localNumber) {
+  const c = normalizePhone(countryCode);
+  const n = normalizePhone(localNumber);
+  if (!c && !n) return "";
+  return `${c}${n}`;
+}
+
+function splitPhone(fullNumber, defaultCountry) {
+  const digits = normalizePhone(fullNumber);
+  const country = normalizePhone(defaultCountry);
+  if (!digits) return { country, local: "" };
+  if (country && digits.startsWith(country)) {
+    return { country, local: digits.slice(country.length) };
+  }
+  return { country, local: digits };
+}
+
+function formatPhoneLabel(entry) {
+  const country = normalizePhone(entry.country || "");
+  const local = normalizePhone(entry.local || "");
+  if (!country) return local;
+  return `+${country} ${local}`;
+}
 
 function showAlert(message, type = "warn") {
   const box = document.getElementById("alerta");
@@ -344,14 +383,23 @@ function clearReminderEntry(medIdx, hora, fecha) {
 }
 
 function sendWhatsUmbral(med) {
-  const phone = normalizePhone(settings.whatsNumber);
-  if (!phone) {
-    showAlert("Configura un número de WhatsApp para enviar la alerta de umbral.", "error");
+  const candidates = (settings.whatsNumbers || []).map(entry => buildFullPhone(entry.country, entry.local)).filter(Boolean);
+
+  if (!candidates.length) {
+    const fallback = buildFullPhone(settings.whatsCountry, settings.whatsNumber);
+    if (fallback) candidates.push(fallback);
+  }
+
+  if (!candidates.length) {
+    showAlert("Configura al menos un número de WhatsApp para enviar la alerta de umbral.", "error");
     return;
   }
+
   const text = encodeURIComponent(`⚠️ Alerta de stock bajo: ${med.nombre}. Stock: ${med.stock}. Umbral: ${med.umbral}.`);
-  const url = `https://wa.me/${phone}?text=${text}`;
-  window.open(url, "_blank");
+  candidates.forEach(full => {
+    const url = `https://wa.me/${full}?text=${text}`;
+    window.open(url, "_blank");
+  });
 }
 
 function consumosDeHoy(med) {
@@ -743,11 +791,44 @@ if (filtroHistMes) {
 renderHistorialLista();
 
 if (waNumberInput) {
-  waNumberInput.value = settings.whatsNumber;
-  waNumberInput.addEventListener("change", () => {
-    settings.whatsNumber = normalizePhone(waNumberInput.value);
-    waNumberInput.value = settings.whatsNumber;
+  const defaultCountry = settings.whatsCountry || "56";
+  if (waCountrySelect) {
+    waCountrySelect.value = defaultCountry;
+    waCountrySelect.addEventListener("change", () => {
+      settings.whatsCountry = normalizePhone(waCountrySelect.value) || "";
+      guardarSettings();
+    });
+  }
+  waNumberInput.value = "";
+}
+
+if (waAddBtn) {
+  waAddBtn.addEventListener("click", () => {
+    const country = waCountrySelect ? normalizePhone(waCountrySelect.value) : (settings.whatsCountry || "");
+    const local = normalizePhone(waNumberInput ? waNumberInput.value : "");
+    if (!local) {
+      showAlert("Ingresa un número local para agregarlo.", "error");
+      return;
+    }
+
+    const entry = { country, local };
+    const full = buildFullPhone(country, local);
+    if (!full) {
+      showAlert("El número no es válido.", "error");
+      return;
+    }
+
+    const exists = settings.whatsNumbers.some(e => buildFullPhone(e.country, e.local) === full);
+    if (exists) {
+      showAlert("Ese número ya está en la lista.", "warn");
+      return;
+    }
+
+    settings.whatsCountry = country || settings.whatsCountry || "";
+    settings.whatsNumbers.push(entry);
     guardarSettings();
+    if (waNumberInput) waNumberInput.value = "";
+    renderWaList();
   });
 }
 
@@ -758,6 +839,41 @@ if (waAutoInput) {
     guardarSettings();
   });
 }
+
+function renderWaList() {
+  if (!waList) return;
+
+  waList.innerHTML = "";
+  if (!settings.whatsNumbers.length) {
+    const empty = document.createElement("li");
+    empty.className = "phone-pill empty";
+    empty.textContent = "Sin números guardados";
+    waList.appendChild(empty);
+    return;
+  }
+
+  settings.whatsNumbers.forEach((entry, idx) => {
+    const li = document.createElement("li");
+    li.className = "phone-pill";
+    li.textContent = formatPhoneLabel(entry);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "pill-remove";
+    removeBtn.textContent = "×";
+    removeBtn.setAttribute("aria-label", "Eliminar número");
+    removeBtn.addEventListener("click", () => {
+      settings.whatsNumbers.splice(idx, 1);
+      guardarSettings();
+      renderWaList();
+    });
+
+    li.appendChild(removeBtn);
+    waList.appendChild(li);
+  });
+}
+
+renderWaList();
 
 renderPushUI(cachedFcmToken, Notification.permission);
 

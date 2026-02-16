@@ -68,6 +68,75 @@ li {
   margin: 6px 0;
 }
 
+.wa-box {
+  border: 1px solid #c5e1a5;
+  background: #f9fff5;
+}
+
+.phone-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+
+.country-picker select,
+.phone-input input {
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 260px;
+}
+
+.wa-actions {
+  margin: 4px 0 10px;
+}
+
+.phone-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.phone-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e8f5e9;
+  color: #1b5e20;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #c5e1a5;
+  font-size: 0.95rem;
+}
+
+.phone-pill.empty {
+  background: #f0f0f0;
+  color: #666;
+  border-color: #ddd;
+}
+
+.pill-remove {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.help-text {
+  margin: 6px 0 10px;
+  color: #4a5568;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
 .settings .inline {
   display: inline-flex;
   align-items: center;
