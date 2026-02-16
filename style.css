@@ -55,6 +55,23 @@ body {
   background: #fafafa;
 }
 
+.phone-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.country-picker select,
+.phone-input input {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid #cfd8dc;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fafafa;
+}
+
 .register-card button {
   margin-top: 6px;
   padding: 12px;

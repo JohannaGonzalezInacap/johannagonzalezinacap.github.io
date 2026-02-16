@@ -3,9 +3,21 @@
   const nombre = document.getElementById("regNombre");
   const apellido = document.getElementById("regApellido");
   const edad = document.getElementById("regEdad");
+  const country = document.getElementById("regCountry");
   const telefono = document.getElementById("regTelefono");
   const ciudad = document.getElementById("regCiudad");
   const STORAGE_KEY = "userProfile";
+
+  const PLACEHOLDER_MAP = {
+    "56": "Ej: +56 9 1234 5678",
+    "58": "Ej: +58 412 1234567",
+    "1": "Ej: +1 773 123 4567",
+    "34": "Ej: +34 612 345 678",
+    "52": "Ej: +52 5512345678",
+    "57": "Ej: +57 3012345678",
+    "51": "Ej: +51 987654321",
+    "": "Incluye tu código de país y número"
+  };
 
   function setInitialValues() {
     try {
@@ -15,8 +27,10 @@
       if (data.nombre) nombre.value = data.nombre;
       if (data.apellido) apellido.value = data.apellido;
       if (data.edad) edad.value = data.edad;
+      if (data.country) country.value = data.country;
       if (data.telefono) telefono.value = data.telefono;
       if (data.ciudad) ciudad.value = data.ciudad;
+      updatePlaceholder();
     } catch (err) {
       console.warn("No se pudo cargar el perfil previo", err);
     }
@@ -25,6 +39,11 @@
   function normalizeTelefono(value) {
     if (!value) return "";
     return value.replace(/\D+/g, "");
+  }
+
+  function updatePlaceholder() {
+    const code = country?.value || "";
+    telefono.placeholder = PLACEHOLDER_MAP[code] || PLACEHOLDER_MAP[""];
   }
 
   function validate() {
@@ -56,6 +75,7 @@
       nombre: nombre.value.trim(),
       apellido: apellido.value.trim(),
       edad: Number(edad.value),
+      country: (country?.value || "").trim(),
       telefono: normalizeTelefono(telefono.value),
       ciudad: ciudad.value.trim()
     };
@@ -70,5 +90,8 @@
   });
 
   setInitialValues();
+  updatePlaceholder();
   ensureServiceWorker();
+
+  country?.addEventListener("change", updatePlaceholder);
 })();
