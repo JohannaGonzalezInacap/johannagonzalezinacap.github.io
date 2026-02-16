@@ -133,6 +133,11 @@ li {
   border: 1px solid #e0e0e0;
 }
 
+.wa-box {
+  border: 1px solid #c5e1a5;
+  background: #f9fff5;
+}
+
 .install-row {
   display: flex;
   align-items: center;
@@ -176,6 +181,23 @@ li {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.phone-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+
+.country-picker select,
+.phone-input input {
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 260px;
 }
 
 #pushStatus {
@@ -244,6 +266,11 @@ li {
   }
 
   .push-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .phone-row {
     flex-direction: column;
     align-items: flex-start;
   }

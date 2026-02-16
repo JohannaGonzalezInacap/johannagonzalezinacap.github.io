@@ -35,10 +35,30 @@
         <span id="pushStatus" aria-live="polite"></span>
       </div>
     </div>
-    <label>
-      Número WhatsApp (solo dígitos):
-      <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="56912345678">
-    </label>
+  </section>
+
+  <section class="settings wa-box">
+    <h2>📲 WhatsApp de alertas</h2>
+    <p class="help-text">Elige el código de país con la bandera e ingresa solo los dígitos locales (sin repetir el código de país).</p>
+    <div class="phone-row">
+      <label class="country-picker">
+        Código de país:
+        <select id="waCountry">
+          <option value="56">🇨🇱 +56 Chile</option>
+          <option value="58">🇻🇪 +58 Venezuela</option>
+          <option value="1">🇺🇸 +1 Estados Unidos</option>
+          <option value="34">🇪🇸 +34 España</option>
+          <option value="52">🇲🇽 +52 México</option>
+          <option value="57">🇨🇴 +57 Colombia</option>
+          <option value="51">🇵🇪 +51 Perú</option>
+          <option value="">🌐 Otro</option>
+        </select>
+      </label>
+      <label class="phone-input">
+        Número local (solo dígitos):
+        <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="Ej: 912345678">
+      </label>
+    </div>
     <label class="inline">
       <input type="checkbox" id="waAuto"> Enviar alerta de umbral a WhatsApp automáticamente
     </label>

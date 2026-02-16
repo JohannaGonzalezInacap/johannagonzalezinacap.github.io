@@ -1,5 +1,6 @@
 const form = document.getElementById("medForm");
 const lista = document.getElementById("listaMedicamentos");
+const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
 const waAutoInput = document.getElementById("waAuto");
 const notifBtn = document.getElementById("notifBtn");
@@ -26,8 +27,10 @@ let userProfile = null;
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
   whatsNumber: "",
+  whatsCountry: "56",
   autoWhats: false
 };
+settings.whatsCountry = settings.whatsCountry || "56";
 let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
   date: hoy(),
   entries: {}
@@ -426,8 +429,11 @@ function clearReminderEntry(medIdx, hora, fecha) {
 }
 
 function sendWhatsUmbral(med) {
-  const phone = normalizePhone(settings.whatsNumber);
-  if (!phone) {
+  const country = normalizePhone(settings.whatsCountry);
+  const local = normalizePhone(settings.whatsNumber);
+  const phone = `${country}${local}`;
+
+  if (!local) {
     showAlert("Configura un número de WhatsApp para enviar la alerta de umbral.", "error");
     return;
   }
@@ -825,12 +831,39 @@ if (filtroHistMes) {
 renderHistorialLista();
 
 if (waNumberInput) {
+  const PLACEHOLDER_MAP = {
+    "56": "Ej: 912345678",
+    "58": "Ej: 4121234567",
+    "1": "Ej: 7731234567",
+    "34": "Ej: 612345678",
+    "52": "Ej: 5512345678",
+    "57": "Ej: 3012345678",
+    "51": "Ej: 987654321",
+    "": "Ingresa solo dígitos locales"
+  };
+
+  const updateWaPlaceholder = () => {
+    const code = waCountrySelect?.value || "";
+    waNumberInput.placeholder = PLACEHOLDER_MAP[code] || PLACEHOLDER_MAP[""];
+  };
+
+  if (waCountrySelect) {
+    waCountrySelect.value = settings.whatsCountry || "";
+    waCountrySelect.addEventListener("change", () => {
+      settings.whatsCountry = waCountrySelect.value || "";
+      guardarSettings();
+      updateWaPlaceholder();
+    });
+  }
+
   waNumberInput.value = settings.whatsNumber;
   waNumberInput.addEventListener("change", () => {
     settings.whatsNumber = normalizePhone(waNumberInput.value);
     waNumberInput.value = settings.whatsNumber;
     guardarSettings();
   });
+
+  updateWaPlaceholder();
 }
 
 if (waAutoInput) {
