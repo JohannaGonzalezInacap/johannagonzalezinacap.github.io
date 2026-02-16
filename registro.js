@@ -9,15 +9,25 @@
   const STORAGE_KEY = "userProfile";
 
   const PLACEHOLDER_MAP = {
-    "56": "Ej: 56912345678",
-    "58": "Ej: 584121234567",
-    "1": "Ej: 17731234567",
-    "34": "Ej: 34612345678",
-    "52": "Ej: 525512345678",
-    "57": "Ej: 573012345678",
-    "51": "Ej: 51987654321",
-    "": "Incluye tu código de país y número (solo dígitos)"
+    "56": "Ej: 912345678",
+    "58": "Ej: 4121234567",
+    "1": "Ej: 7731234567",
+    "34": "Ej: 612345678",
+    "52": "Ej: 5512345678",
+    "57": "Ej: 3012345678",
+    "51": "Ej: 987654321",
+    "": "Ingresa solo dígitos (sin código de país)"
   };
+
+  function splitPhone(fullNumber, countryCode) {
+    const digits = normalizeTelefono(fullNumber);
+    const code = normalizeTelefono(countryCode);
+    if (!digits) return { country: code, local: "" };
+    if (code && digits.startsWith(code)) {
+      return { country: code, local: digits.slice(code.length) };
+    }
+    return { country: code, local: digits };
+  }
 
   function setInitialValues() {
     try {
@@ -28,7 +38,10 @@
       if (data.apellido) apellido.value = data.apellido;
       if (data.edad) edad.value = data.edad;
       if (data.country) country.value = data.country;
-      if (data.telefono) telefono.value = data.telefono;
+      if (data.telefono) {
+        const parts = splitPhone(data.telefono, data.country || "");
+        telefono.value = parts.local;
+      }
       if (data.ciudad) ciudad.value = data.ciudad;
       updatePlaceholder();
     } catch (err) {
@@ -71,12 +84,17 @@
       return;
     }
 
+    const countryCode = normalizeTelefono(country?.value || "");
+    const phoneLocal = normalizeTelefono(telefono.value);
+    const phoneFull = `${countryCode}${phoneLocal}`;
+
     const payload = {
       nombre: nombre.value.trim(),
       apellido: apellido.value.trim(),
       edad: Number(edad.value),
-      country: (country?.value || "").trim(),
-      telefono: normalizeTelefono(telefono.value),
+      country: countryCode,
+      telefono: phoneFull,
+      telefonoLocal: phoneLocal,
       ciudad: ciudad.value.trim()
     };
 
