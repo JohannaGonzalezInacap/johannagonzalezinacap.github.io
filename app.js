@@ -128,7 +128,7 @@ function renderNotifStatus() {
 
   const perm = Notification.permission;
   if (perm === "granted") {
-    notifStatus.textContent = "Notificaciones activadas.";
+    notifStatus.textContent = "";
     setActionButtonState(notifBtn, true, "Notificaciones activadas", "Activar notificaciones");
   } else if (perm === "denied") {
     notifStatus.textContent = "Bloqueadas por el navegador. Habilítalas en ajustes.";
@@ -758,8 +758,6 @@ if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
     if (cachedFcmToken && Notification.permission === "granted") {
       renderPushUI(cachedFcmToken, Notification.permission);
-      showAlert("Ya tienes una suscripción activa en Firebase Cloud Messaging.", "success");
-      if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
       return;
     }
 
