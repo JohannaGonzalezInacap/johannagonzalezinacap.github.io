@@ -54,7 +54,7 @@ medicamentos = medicamentos.map(med => ({
 
 userProfile = loadProfile();
 
-if (!isRegisterPage && !userProfile) {
+if (!isRegisterPage && !hasValidProfile(userProfile)) {
   window.location.href = "./registro.html";
 }
 
@@ -90,6 +90,14 @@ function loadProfile() {
     console.warn("No se pudo leer el perfil", err);
     return null;
   }
+}
+
+function hasValidProfile(profile) {
+  if (!profile) return false;
+  const nameOk = Boolean(profile.nombre?.trim());
+  const lastOk = Boolean(profile.apellido?.trim());
+  const phoneOk = Boolean(normalizePhone(profile.telefono));
+  return nameOk && lastOk && phoneOk;
 }
 
 function normalizeHora(h) {
