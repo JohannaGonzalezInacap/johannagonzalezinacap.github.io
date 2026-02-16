@@ -68,7 +68,14 @@
   <form id="medForm">
     <input type="text" id="nombre" placeholder="Nombre del medicamento" required>
     <input type="number" id="stock" placeholder="Stock inicial" required>
-    <input type="number" id="dosis" placeholder="Dosis diaria" required>
+    <input type="number" id="dosis" placeholder="Dosis diarias (tomas al día)" min="1" value="1" required>
+
+    <section class="settings horarios-box">
+      <h2>⏰ Horarios</h2>
+      <p class="help-text">Agrega una hora por cada dosis diaria. Usa el formato HH:MM y elige AM o PM, o toca el botón de reloj para abrir el selector.</p>
+      <div id="horariosContainer" class="horarios-container" aria-label="Lista de horarios"></div>
+    </section>
+
     <button type="submit">Agregar</button>
   </form>
 

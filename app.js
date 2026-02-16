@@ -3,6 +3,8 @@ const lista = document.getElementById("listaMedicamentos");
 const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
 const waAutoInput = document.getElementById("waAuto");
+const dosisInput = document.getElementById("dosis");
+const horariosContainer = document.getElementById("horariosContainer");
 const notifBtn = document.getElementById("notifBtn");
 const notifStatus = document.getElementById("notifStatus");
 const pushBtn = document.getElementById("pushBtn");
@@ -127,6 +129,25 @@ function normalizeHora(h) {
   const mmNum = Number(plain[2]);
   if (hhNum > 23 || mmNum > 59) return null;
   return `${String(hhNum).padStart(2, "0")}:${String(mmNum).padStart(2, "0")}`;
+}
+
+function normalizeHoraAmPm(raw, ampm) {
+  if (!raw) return null;
+  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (Number.isNaN(hour) || Number.isNaN(minutes) || minutes > 59) return null;
+
+  const ampmUpper = (ampm || "").toUpperCase();
+  if (ampmUpper === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (ampmUpper === "PM") {
+    if (hour !== 12) hour = (hour % 12) + 12;
+  }
+
+  if (hour > 23) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
   function normalizePhone(p) {
@@ -737,13 +758,7 @@ form.addEventListener("submit", e => {
   const stock = Number(document.getElementById("stock").value);
   const dosis = Number(document.getElementById("dosis").value);
 
-  const horariosStr = prompt("Horarios (HH:MM separados por coma, acepta AM/PM)", "");
-  if (horariosStr === null) return;
-
-  const horarios = horariosStr
-    .split(",")
-    .map(h => normalizeHora(h))
-    .filter(Boolean);
+  const horarios = gatherHorariosFromInputs();
 
   if (horarios.length !== dosis) {
     showAlert("La cantidad de horarios debe ser igual a las dosis diarias.", "error");
@@ -810,6 +825,15 @@ function render() {
     `;
 
     lista.appendChild(li);
+  });
+}
+
+// Inicializar horarios guiados
+renderHorariosInputs();
+
+if (dosisInput) {
+  dosisInput.addEventListener("change", () => {
+    renderHorariosInputs();
   });
 }
 ;
