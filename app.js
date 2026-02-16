@@ -1,28 +1,18 @@
 const form = document.getElementById("medForm");
-const regForm = document.getElementById("regForm");
-const regNombreInput = document.getElementById("regNombre");
-const regApellidoInput = document.getElementById("regApellido");
-const regEdadInput = document.getElementById("regEdad");
-const regCountrySelect = document.getElementById("regCountry");
-const regPhoneInput = document.getElementById("regPhone");
 const lista = document.getElementById("listaMedicamentos");
-const dosisInput = document.getElementById("dosis");
-const umbralInput = document.getElementById("umbral");
-const horariosContainer = document.getElementById("horariosContainer");
-const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
-const waAddBtn = document.getElementById("waAddBtn");
-const waList = document.getElementById("waList");
 const waAutoInput = document.getElementById("waAuto");
 const notifBtn = document.getElementById("notifBtn");
 const notifStatus = document.getElementById("notifStatus");
 const pushBtn = document.getElementById("pushBtn");
 const pushStatus = document.getElementById("pushStatus");
 const pushData = document.getElementById("pushData");
+const installBtn = document.getElementById("installBtn");
+const installStatus = document.getElementById("installStatus");
+const PROFILE_KEY = "userProfile";
 
 let notifWarned = false;
 const APP_CONFIG = (typeof globalThis !== "undefined" ? (globalThis.APP_CONFIG || {}) : {});
-
 const FIREBASE_CONFIG = APP_CONFIG.firebaseConfig || null;
 const VAPID_KEY = APP_CONFIG.vapidKey || "";
 let messagingInstance = null;
@@ -30,51 +20,19 @@ let messagingRegistration = null;
 let cachedFcmToken = (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "") || "";
 let baseSwRegistration = null;
 const REGISTER_TOKEN_URL = "https://registertoken-upmcmldjtq-uc.a.run.app";
-const REGISTER_USER_URL = APP_CONFIG.registerUserUrl || "/register";
+let deferredInstallPrompt = null;
+const isRegisterPage = typeof window !== "undefined" && window.location.pathname.includes("registro.html");
+let userProfile = null;
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
   whatsNumber: "",
-  whatsCountry: "56",
-  whatsNumbers: [],
-  autoWhats: false,
-  profile: {
-    nombre: "",
-    apellido: "",
-    edad: "",
-    country: "56",
-    phone: ""
-  }
+  autoWhats: false
 };
-settings.whatsCountry = settings.whatsCountry || "56";
-if (!Array.isArray(settings.whatsNumbers)) settings.whatsNumbers = [];
-if (!settings.profile) {
-  settings.profile = { nombre: "", apellido: "", edad: "", country: "56", phone: "" };
-}
-
-// Migrar número único previo a la nueva lista
-if (settings.whatsNumber) {
-  settings.whatsNumbers.push({
-    country: normalizePhone(settings.whatsCountry || ""),
-    local: normalizePhone(settings.whatsNumber)
-  });
-  settings.whatsNumber = "";
-}
 let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
   date: hoy(),
   entries: {}
 };
-
-function setActionButtonState(btn, isDone, labelDone, labelDefault) {
-  if (!btn) return;
-  btn.textContent = isDone ? labelDone : labelDefault;
-  btn.disabled = isDone;
-}
-
-function clearCachedToken() {
-  cachedFcmToken = "";
-  try { localStorage.removeItem("fcmToken"); } catch (_) { /* ignore */ }
-}
 
 // 🔒 Normalizar datos antiguos (muy importante)
 medicamentos = medicamentos.map(med => ({
@@ -95,6 +53,15 @@ medicamentos = medicamentos.map(med => ({
   })
 }));
 
+userProfile = loadProfile();
+
+if (!isRegisterPage && !userProfile) {
+  window.location.href = "./registro.html";
+}
+
+
+
+
 function hoy() {
   return new Date().toISOString().split("T")[0];
 }
@@ -113,6 +80,17 @@ function guardarSettings() {
 
 function guardarReminderState() {
   localStorage.setItem("reminderState", JSON.stringify(reminderState));
+}
+
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn("No se pudo leer el perfil", err);
+    return null;
+  }
 }
 
 function normalizeHora(h) {
@@ -141,146 +119,10 @@ function normalizeHora(h) {
   return `${String(hhNum).padStart(2, "0")}:${String(mmNum).padStart(2, "0")}`;
 }
 
-function normalizePhone(p) {
-  if (!p) return "";
-  return p.replace(/\D+/g, "");
-}
-
-function buildFullPhone(countryCode, localNumber) {
-  const c = normalizePhone(countryCode);
-  const n = normalizePhone(localNumber);
-  if (!c && !n) return "";
-  return `${c}${n}`;
-}
-
-function splitPhone(fullNumber, defaultCountry) {
-  const digits = normalizePhone(fullNumber);
-  const country = normalizePhone(defaultCountry);
-  if (!digits) return { country, local: "" };
-  if (country && digits.startsWith(country)) {
-    return { country, local: digits.slice(country.length) };
+  function normalizePhone(p) {
+    if (!p) return "";
+    return p.replace(/\D+/g, "");
   }
-  return { country, local: digits };
-}
-
-function formatPhoneLabel(entry) {
-  const country = normalizePhone(entry.country || "");
-  const local = normalizePhone(entry.local || "");
-  if (!country) return local;
-  return `+${country} ${local}`;
-}
-
-function normalizeHoraAmPm(raw, ampm) {
-  if (!raw) return null;
-  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!match) return null;
-  let hour = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (Number.isNaN(hour) || Number.isNaN(minutes) || minutes > 59) return null;
-
-  const ampmUpper = (ampm || "").toUpperCase();
-  if (ampmUpper === "AM") {
-    if (hour === 12) hour = 0;
-  } else if (ampmUpper === "PM") {
-    if (hour !== 12) hour = (hour % 12) + 12;
-  }
-
-  if (hour > 23) return null;
-  return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-function buildHoraRow(idx) {
-  const row = document.createElement("div");
-  row.className = "hora-row";
-
-  const horaInput = document.createElement("input");
-  horaInput.type = "text";
-  horaInput.className = "hora-input";
-  horaInput.placeholder = "Ej: 08:00";
-  horaInput.inputMode = "numeric";
-  horaInput.setAttribute("aria-label", `Hora ${idx + 1}`);
-
-  const ampmSelect = document.createElement("select");
-  ampmSelect.className = "ampm-select";
-  ["AM", "PM"].forEach(val => {
-    const opt = document.createElement("option");
-    opt.value = val;
-    opt.textContent = val;
-    ampmSelect.appendChild(opt);
-  });
-
-  const pickerBtn = document.createElement("button");
-  pickerBtn.type = "button";
-  pickerBtn.className = "picker-btn";
-  pickerBtn.textContent = "🕒";
-  pickerBtn.title = "Elegir hora";
-
-  const nativeTime = document.createElement("input");
-  nativeTime.type = "time";
-  nativeTime.step = "60";
-  nativeTime.className = "hora-native";
-  nativeTime.style.position = "absolute";
-  nativeTime.style.opacity = "0";
-  nativeTime.style.pointerEvents = "none";
-  nativeTime.tabIndex = -1;
-
-  pickerBtn.addEventListener("click", () => {
-    if (nativeTime.showPicker) {
-      nativeTime.showPicker();
-    } else {
-      nativeTime.focus();
-      nativeTime.click();
-    }
-  });
-
-  nativeTime.addEventListener("change", () => {
-    if (!nativeTime.value) return;
-    const [h, m] = nativeTime.value.split(":");
-    const hourNum = Number(h);
-    ampmSelect.value = hourNum >= 12 ? "PM" : "AM";
-    const displayHour = hourNum % 12 === 0 ? 12 : hourNum % 12;
-    horaInput.value = `${String(displayHour).padStart(2, "0")}:${m}`;
-  });
-
-  row.appendChild(horaInput);
-  row.appendChild(ampmSelect);
-  row.appendChild(pickerBtn);
-  row.appendChild(nativeTime);
-  return row;
-}
-
-function ensureHorarioRows(count) {
-  if (!horariosContainer) return;
-  const desired = Math.max(1, Number(count) || 1);
-  while (horariosContainer.children.length < desired) {
-    const row = buildHoraRow(horariosContainer.children.length);
-    horariosContainer.appendChild(row);
-  }
-  while (horariosContainer.children.length > desired) {
-    horariosContainer.removeChild(horariosContainer.lastElementChild);
-  }
-}
-
-function collectHorariosFromUI(expected) {
-  if (!horariosContainer) return [];
-  const rows = Array.from(horariosContainer.querySelectorAll(".hora-row"));
-  const horarios = [];
-  for (let i = 0; i < expected; i++) {
-    const row = rows[i];
-    if (!row) break;
-    const horaInput = row.querySelector(".hora-input");
-    const ampmSelect = row.querySelector(".ampm-select");
-    const raw = horaInput?.value || "";
-    const ampm = ampmSelect?.value || "AM";
-    const normalized = normalizeHoraAmPm(raw, ampm);
-    if (!normalized) {
-      showAlert(`Revisa el horario ${i + 1}. Usa el formato HH:MM y elige AM/PM.`, "error");
-      return null;
-    }
-    horarios.push(normalized);
-  }
-  return horarios;
-}
 
 function showAlert(message, type = "warn") {
   const box = document.getElementById("alerta");
@@ -291,6 +133,82 @@ function showAlert(message, type = "warn") {
   box.className = `alert-box alert-${type}`;
   box.innerHTML = message;
 }
+
+async function registerBaseServiceWorker() {
+  if (!("serviceWorker" in navigator)) return null;
+  if (baseSwRegistration) return baseSwRegistration;
+  try {
+    baseSwRegistration = await navigator.serviceWorker.register("./sw.js");
+    return baseSwRegistration;
+  } catch (err) {
+    console.warn("Service Worker registration failed", err);
+    return null;
+  }
+}
+
+function isStandaloneDisplay() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+}
+
+function setInstallStatus(text) {
+  if (installStatus) installStatus.textContent = text;
+}
+
+function setupInstallPrompt() {
+  if (installBtn) installBtn.hidden = true;
+
+  if (isStandaloneDisplay()) {
+    setInstallStatus("App instalada");
+    if (installBtn) {
+      installBtn.hidden = false;
+      installBtn.disabled = true;
+      installBtn.textContent = "Instalada";
+    }
+  }
+
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    if (installBtn) {
+      installBtn.hidden = false;
+      installBtn.disabled = false;
+      installBtn.textContent = "Instalar app";
+    }
+    setInstallStatus("Disponible para instalar");
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) {
+        setInstallStatus(isStandaloneDisplay() ? "App ya instalada" : "Instalación no disponible todavía");
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice?.outcome === "accepted") {
+        setInstallStatus("Instalando...");
+        installBtn.disabled = true;
+        installBtn.textContent = "Instalando...";
+      } else {
+        setInstallStatus("Instalación cancelada");
+      }
+      deferredInstallPrompt = null;
+    });
+  }
+
+  window.addEventListener("appinstalled", () => {
+    setInstallStatus("App instalada");
+    if (installBtn) {
+      installBtn.disabled = true;
+      installBtn.textContent = "Instalada";
+      installBtn.hidden = false;
+    }
+  });
+}
+
+registerBaseServiceWorker();
+setupInstallPrompt();
+
 
 function renderNotifStatus() {
   if (!notifStatus || !notifBtn) return;
@@ -303,14 +221,14 @@ function renderNotifStatus() {
 
   const perm = Notification.permission;
   if (perm === "granted") {
-    notifStatus.textContent = "";
-    setActionButtonState(notifBtn, true, "Notificaciones activadas", "Activar notificaciones");
+    notifStatus.textContent = "Notificaciones activadas.";
+    notifBtn.textContent = "Revisar permisos";
   } else if (perm === "denied") {
     notifStatus.textContent = "Bloqueadas por el navegador. Habilítalas en ajustes.";
-    setActionButtonState(notifBtn, false, "", "Volver a intentar");
+    notifBtn.textContent = "Volver a intentar";
   } else {
     notifStatus.textContent = "Pendientes de activar.";
-    setActionButtonState(notifBtn, false, "", "Activar notificaciones");
+    notifBtn.textContent = "Activar notificaciones";
   }
 }
 
@@ -337,7 +255,7 @@ function renderPushUI(token, permission) {
   const perm = permission || Notification.permission;
   const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey;
   const hasVapid = Boolean(VAPID_KEY);
-  const isReady = Boolean(token);
+  const isReady = Boolean(token) && perm === "granted";
 
   if (!hasConfig || !hasVapid) {
     pushStatus.textContent = "Configura firebaseConfig y vapidKey en config.js";
@@ -347,9 +265,9 @@ function renderPushUI(token, permission) {
   }
 
   pushBtn.disabled = false;
-  setActionButtonState(pushBtn, isReady, "Suscripción FCM activa", "Activar recordatorios push");
+  pushBtn.textContent = isReady ? "Suscripción FCM activa" : "Activar recordatorios push";
   pushStatus.textContent = isReady
-    ? "Firebase Cloud Messaging listo."
+    ? "Firebase Cloud Messaging listo. Usa el token para enviar avisos."
     : "Pendiente de activar.";
   pushData.value = isReady ? JSON.stringify({ token }, null, 2) : "";
 }
@@ -398,13 +316,14 @@ async function ensureFirebaseMessaging() {
 
   if (!messagingRegistration) {
     try {
-      if (!baseSwRegistration) {
-        baseSwRegistration = await navigator.serviceWorker.register("./sw.js");
-      }
-      messagingRegistration = baseSwRegistration;
+      messagingRegistration = await registerBaseServiceWorker();
     } catch (err) {
       console.error("SW registration error", err);
       showAlert("No se pudo registrar el Service Worker de FCM.", "error");
+      return null;
+    }
+    if (!messagingRegistration) {
+      showAlert("No se pudo registrar el Service Worker para notificaciones.", "error");
       return null;
     }
   }
@@ -434,18 +353,6 @@ async function subscribePush() {
     }
 
     cachedFcmToken = token;
-
-    // Registrar el Service Worker principal (PWA + FCM)
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js").then(reg => {
-        baseSwRegistration = reg;
-        if (!messagingRegistration) {
-          messagingRegistration = reg;
-        }
-      }).catch(err => {
-        console.error("SW registration error", err);
-      });
-    }
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("fcmToken", token);
     }
@@ -458,12 +365,12 @@ async function subscribePush() {
   } catch (err) {
     console.error("FCM subscribe error", err);
     const msg = err?.message || err?.code || String(err);
-    clearCachedToken();
-    renderPushUI("", Notification.permission);
     showAlert(`No se pudo completar la suscripción en FCM: ${msg}`, "error");
     return null;
   }
 }
+
+
 
 async function dispatchNotification(title, body) {
   if (!("Notification" in window)) return false;
@@ -514,23 +421,14 @@ function clearReminderEntry(medIdx, hora, fecha) {
 }
 
 function sendWhatsUmbral(med) {
-  const candidates = (settings.whatsNumbers || []).map(entry => buildFullPhone(entry.country, entry.local)).filter(Boolean);
-
-  if (!candidates.length) {
-    const fallback = buildFullPhone(settings.whatsCountry, settings.whatsNumber);
-    if (fallback) candidates.push(fallback);
-  }
-
-  if (!candidates.length) {
-    showAlert("Configura al menos un número de WhatsApp para enviar la alerta de umbral.", "error");
+  const phone = normalizePhone(settings.whatsNumber);
+  if (!phone) {
+    showAlert("Configura un número de WhatsApp para enviar la alerta de umbral.", "error");
     return;
   }
-
   const text = encodeURIComponent(`⚠️ Alerta de stock bajo: ${med.nombre}. Stock: ${med.stock}. Umbral: ${med.umbral}.`);
-  candidates.forEach(full => {
-    const url = `https://wa.me/${full}?text=${text}`;
-    window.open(url, "_blank");
-  });
+  const url = `https://wa.me/${phone}?text=${text}`;
+  window.open(url, "_blank");
 }
 
 function consumosDeHoy(med) {
@@ -741,6 +639,7 @@ function editar(index) {
 );
 
 if (nuevosHorarios === null) return;
+
 med.horarios = nuevosHorarios
   .split(",")
   .map(h => normalizeHora(h))
@@ -823,46 +722,40 @@ function renderFiltro() {
 form.addEventListener("submit", e => {
   e.preventDefault();
 
-  const nombre = (document.getElementById("nombre")?.value || "").trim();
-  const stock = Number(document.getElementById("stock")?.value || 0);
-  const dosis = Math.max(1, Number(dosisInput?.value || 1));
-  const umbral = Number(umbralInput?.value || 5);
+  const nombre = document.getElementById("nombre").value;
+  const stock = Number(document.getElementById("stock").value);
+  const dosis = Number(document.getElementById("dosis").value);
 
-  if (!nombre) {
-    showAlert("Ingresa el nombre del medicamento.", "error");
+  const horariosStr = prompt("Horarios (HH:MM separados por coma, acepta AM/PM)", "");
+  if (horariosStr === null) return;
+
+  const horarios = horariosStr
+    .split(",")
+    .map(h => normalizeHora(h))
+    .filter(Boolean);
+
+  if (horarios.length !== dosis) {
+    showAlert("La cantidad de horarios debe ser igual a las dosis diarias.", "error");
     return;
   }
-
-  if (Number.isNaN(stock) || stock < 0) {
-    showAlert("Ingresa un stock inicial válido.", "error");
-    return;
-  }
-
-  const horarios = collectHorariosFromUI(dosis);
-  if (!horarios || horarios.length !== dosis) return;
 
   medicamentos.push({
     nombre,
     stock,
     dosis,
-    umbral: Number.isNaN(umbral) ? 5 : umbral,
+    umbral: 5,
     horarios,
     historial: []
   });
 
+
   guardar();
   render();
   renderCalendario();
+  form.reset();
   renderFiltro();
   renderHistorialLista();
-  form.reset();
-  if (dosisInput) {
-    dosisInput.value = 1;
-    ensureHorarioRows(1);
-  }
-  if (umbralInput) {
-    umbralInput.value = 5;
-  }
+
 });
 
 /* =====================
@@ -926,54 +819,12 @@ if (filtroHistMes) {
 }
 renderHistorialLista();
 
-const initialDosis = Math.max(1, Number(dosisInput?.value || 1));
-ensureHorarioRows(initialDosis);
-if (dosisInput) {
-  dosisInput.addEventListener("change", () => {
-    const count = Math.max(1, Number(dosisInput.value) || 1);
-    ensureHorarioRows(count);
-  });
-}
-
 if (waNumberInput) {
-  const defaultCountry = settings.whatsCountry || "56";
-  if (waCountrySelect) {
-    waCountrySelect.value = defaultCountry;
-    waCountrySelect.addEventListener("change", () => {
-      settings.whatsCountry = normalizePhone(waCountrySelect.value) || "";
-      guardarSettings();
-    });
-  }
-  waNumberInput.value = "";
-}
-
-if (waAddBtn) {
-  waAddBtn.addEventListener("click", () => {
-    const country = waCountrySelect ? normalizePhone(waCountrySelect.value) : (settings.whatsCountry || "");
-    const local = normalizePhone(waNumberInput ? waNumberInput.value : "");
-    if (!local) {
-      showAlert("Ingresa un número local para agregarlo.", "error");
-      return;
-    }
-
-    const entry = { country, local };
-    const full = buildFullPhone(country, local);
-    if (!full) {
-      showAlert("El número no es válido.", "error");
-      return;
-    }
-
-    const exists = settings.whatsNumbers.some(e => buildFullPhone(e.country, e.local) === full);
-    if (exists) {
-      showAlert("Ese número ya está en la lista.", "warn");
-      return;
-    }
-
-    settings.whatsCountry = country || settings.whatsCountry || "";
-    settings.whatsNumbers.push(entry);
+  waNumberInput.value = settings.whatsNumber;
+  waNumberInput.addEventListener("change", () => {
+    settings.whatsNumber = normalizePhone(waNumberInput.value);
+    waNumberInput.value = settings.whatsNumber;
     guardarSettings();
-    if (waNumberInput) waNumberInput.value = "";
-    renderWaList();
   });
 }
 
@@ -985,92 +836,17 @@ if (waAutoInput) {
   });
 }
 
-function renderWaList() {
-  if (!waList) return;
-
-  waList.innerHTML = "";
-  if (!settings.whatsNumbers.length) {
-    const empty = document.createElement("li");
-    empty.className = "phone-pill empty";
-    empty.textContent = "Sin números guardados";
-    waList.appendChild(empty);
-    return;
-  }
-
-  settings.whatsNumbers.forEach((entry, idx) => {
-    const li = document.createElement("li");
-    li.className = "phone-pill";
-    li.textContent = formatPhoneLabel(entry);
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.className = "pill-remove";
-    removeBtn.textContent = "×";
-    removeBtn.setAttribute("aria-label", "Eliminar número");
-    removeBtn.addEventListener("click", () => {
-      settings.whatsNumbers.splice(idx, 1);
-      guardarSettings();
-      renderWaList();
-    });
-
-    li.appendChild(removeBtn);
-    waList.appendChild(li);
+// Registrar el Service Worker principal (PWA + FCM)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").then(reg => {
+    baseSwRegistration = reg;
+    if (!messagingRegistration) {
+      messagingRegistration = reg;
+    }
+  }).catch(err => {
+    console.error("SW registration error", err);
   });
 }
-
-async function submitRegistration() {
-  const nombre = (regNombreInput?.value || "").trim();
-  const apellido = (regApellidoInput?.value || "").trim();
-  const edadVal = Number(regEdadInput?.value || "");
-  const country = normalizePhone(regCountrySelect?.value || settings.profile.country || "56");
-  const phoneLocal = normalizePhone(regPhoneInput?.value || "");
-  const phone = buildFullPhone(country, phoneLocal);
-
-  if (!nombre || !apellido) {
-    showAlert("Completa nombre y apellido.", "error");
-    return;
-  }
-  if (Number.isNaN(edadVal) || edadVal <= 0) {
-    showAlert("Ingresa una edad válida.", "error");
-    return;
-  }
-  if (!phone) {
-    showAlert("Ingresa un teléfono válido.", "error");
-    return;
-  }
-
-  const payload = {
-    nombre,
-    apellido,
-    edad: edadVal,
-    country,
-    phone,
-    token: cachedFcmToken || null
-  };
-
-  settings.profile = { nombre, apellido, edad: edadVal, country, phone: phoneLocal };
-  guardarSettings();
-
-  try {
-    const resp = await fetch(REGISTER_USER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(text || `HTTP ${resp.status}`);
-    }
-
-    showAlert("Registro guardado correctamente.", "success");
-  } catch (err) {
-    console.error("Register error", err);
-    showAlert("No se pudo guardar el registro. Intenta de nuevo.", "error");
-  }
-}
-
-renderWaList();
 
 renderPushUI(cachedFcmToken, Notification.permission);
 
@@ -1078,6 +854,8 @@ if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
     if (cachedFcmToken && Notification.permission === "granted") {
       renderPushUI(cachedFcmToken, Notification.permission);
+      showAlert("Ya tienes una suscripción activa en Firebase Cloud Messaging.", "success");
+      if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
       return;
     }
 
@@ -1088,66 +866,6 @@ if (pushBtn) {
       if (pushData) pushData.value = JSON.stringify({ token: sub.token }, null, 2);
     }
   });
-}
-
-if (regForm) {
-  // Prefill profile if saved
-  if (settings.profile) {
-    regNombreInput.value = settings.profile.nombre || "";
-    regApellidoInput.value = settings.profile.apellido || "";
-    regEdadInput.value = settings.profile.edad || "";
-    const prefCountry = settings.profile.country || settings.whatsCountry || "56";
-    if (regCountrySelect) regCountrySelect.value = prefCountry;
-    regPhoneInput.value = settings.profile.phone || "";
-  }
-
-  regForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    submitRegistration();
-  });
-}
-
-async function syncPushState() {
-  const perm = Notification.permission;
-
-  // Si no hay permiso, borrar token y habilitar botón
-  if (perm !== "granted") {
-    clearCachedToken();
-    renderPushUI("", perm);
-    return;
-  }
-
-  // Si ya hay token guardado, marcar activo y salir
-  if (cachedFcmToken) {
-    renderPushUI(cachedFcmToken, perm);
-    return;
-  }
-
-  // Intentar recuperar un token existente
-  const ctx = await ensureFirebaseMessaging();
-  if (!ctx) {
-    renderPushUI("", perm);
-    return;
-  }
-
-  try {
-    const token = await ctx.messaging.getToken({
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: ctx.swRegistration
-    });
-    if (token) {
-      cachedFcmToken = token;
-      try { localStorage.setItem("fcmToken", token); } catch (_) { /* ignore */ }
-      renderPushUI(token, "granted");
-      registerTokenRemote(token);
-      return;
-    }
-  } catch (err) {
-    console.error("FCM getToken sync error", err);
-  }
-
-  // Si no se obtuvo token, habilitar botón
-  renderPushUI("", perm);
 }
 
 /* =====================
@@ -1167,7 +885,32 @@ if (notifBtn) {
 
 // Intentar recuperar token FCM existente si el permiso ya está concedido
 (async () => {
-  await syncPushState();
+  if (cachedFcmToken) {
+    renderPushUI(cachedFcmToken, Notification.permission);
+    if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
+    return;
+  }
+
+  if (Notification.permission !== "granted") return;
+
+  const ctx = await ensureFirebaseMessaging();
+  if (!ctx) return;
+
+  try {
+    const token = await ctx.messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: ctx.swRegistration
+    });
+    if (token) {
+      cachedFcmToken = token;
+      if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
+      renderPushUI(token, "granted");
+      if (pushData) pushData.value = JSON.stringify({ token }, null, 2);
+      registerTokenRemote(token);
+    }
+  } catch (err) {
+    console.error("FCM getToken error", err);
+  }
 })();
 
 /* =====================

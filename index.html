@@ -10,7 +10,8 @@
   <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js" defer></script>
   <script src="config.js" defer></script>
-  <script type="module" src="app.js"></script>
+  <script src="app.js" defer></script>
+
 </head>
 <body>
 
@@ -20,127 +21,38 @@
 
   <section class="settings">
     <h2>⚙️ Alertas</h2>
+    <div class="install-row">
+      <button type="button" id="installBtn" aria-live="polite" hidden>Instalar app</button>
+      <span id="installStatus" aria-live="polite"></span>
+    </div>
     <div class="notif-row">
-      <button type="button" id="notifBtn" class="primary-btn">Activar notificaciones</button>
+      <button type="button" id="notifBtn">Activar notificaciones</button>
       <span id="notifStatus" aria-live="polite"></span>
     </div>
     <div class="push-row">
       <div class="push-actions">
-        <button type="button" id="pushBtn" class="primary-btn">Activar recordatorios push</button>
+        <button type="button" id="pushBtn">Activar recordatorios push</button>
         <span id="pushStatus" aria-live="polite"></span>
       </div>
-    </div>
-  </section>
-
-  <section class="settings wa-box">
-    <h2>📲 WhatsApp de alertas</h2>
-    <p class="help-text">
-      Ingresa los números donde llegará la alerta de umbral (stock mínimo). Al dispararse, se abrirá WhatsApp con un mensaje prellenado listo para enviar a cada número guardado.
-      Ejemplo de formato: 912345678 (Chile) / 4141234567 (Venezuela) / 7731234567 (EEUU).
-    </p>
-    <div class="phone-row">
-      <label class="country-picker">
-        Código de país:
-        <select id="waCountry">
-          <option value="56">🇨🇱 +56 Chile</option>
-          <option value="58">🇻🇪 +58 Venezuela</option>
-          <option value="1">🇺🇸 +1 Estados Unidos</option>
-          <option value="34">🇪🇸 +34 España</option>
-          <option value="52">🇲🇽 +52 México</option>
-          <option value="57">🇨🇴 +57 Colombia</option>
-          <option value="51">🇵🇪 +51 Perú</option>
-          <option value="">🌐 Otro</option>
-        </select>
-      </label>
-      <label class="phone-input">
-        Número (solo dígitos):
-        <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="Ej: 912345678 (CL) / 4141234567 (VE) / 7731234567 (US)">
+      <label class="push-label">Token FCM para enviar avisos:
+        <textarea id="pushData" readonly rows="4" placeholder="Aún no hay token activo"></textarea>
       </label>
     </div>
-    <div class="wa-actions">
-      <button type="button" id="waAddBtn" class="primary-btn">Agregar número</button>
-    </div>
-    <ul id="waList" class="phone-list" aria-live="polite"></ul>
+    <label>
+      Número WhatsApp (solo dígitos):
+      <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="56912345678">
+    </label>
     <label class="inline">
       <input type="checkbox" id="waAuto"> Enviar alerta de umbral a WhatsApp automáticamente
     </label>
-    <small>Se abrirá WhatsApp Web/móvil con el mensaje prellenado para solo presionar enviar.</small>
+    <small>Se abrirá WhatsApp Web/móvil con el mensaje prellenado al llegar al umbral.</small>
   </section>
 
-  <section class="settings reg-box">
-    <h2>🧾 Registro básico</h2>
-    <p class="help-text">Ingresa tus datos para asociar el token de notificaciones. Teléfono con el mismo selector de país; ejemplo: 912345678.</p>
-    <form id="regForm" class="form-grid">
-      <section class="form-box">
-        <label>Nombre
-          <input type="text" id="regNombre" placeholder="Ej: Ana" required>
-        </label>
-        <label>Apellido
-          <input type="text" id="regApellido" placeholder="Ej: Pérez" required>
-        </label>
-        <label>Edad
-          <input type="number" id="regEdad" placeholder="Ej: 68" min="0" required>
-        </label>
-      </section>
-      <section class="form-box">
-        <label>Teléfono</label>
-        <div class="phone-row">
-          <label class="country-picker">
-            Código de país:
-            <select id="regCountry">
-              <option value="56">🇨🇱 +56 Chile</option>
-              <option value="58">🇻🇪 +58 Venezuela</option>
-              <option value="1">🇺🇸 +1 Estados Unidos</option>
-              <option value="34">🇪🇸 +34 España</option>
-              <option value="52">🇲🇽 +52 México</option>
-              <option value="57">🇨🇴 +57 Colombia</option>
-              <option value="51">🇵🇪 +51 Perú</option>
-              <option value="">🌐 Otro</option>
-            </select>
-          </label>
-          <label class="phone-input">
-            Número (solo dígitos):
-            <input type="text" id="regPhone" inputmode="tel" pattern="[0-9]+" placeholder="Ej: 912345678">
-          </label>
-        </div>
-        <small>Guardaremos nombre, apellido, edad, teléfono y el token FCM para identificar tus alertas.</small>
-      </section>
-      <div class="form-actions">
-        <button type="submit" class="primary-btn">Guardar registro</button>
-      </div>
-    </form>
-  </section>
-
-  <form id="medForm" class="form-grid">
-    <section class="form-box">
-      <h2>🧴 Medicamento</h2>
-      <label>
-        Nombre
-        <input type="text" id="nombre" placeholder="Ej: Paracetamol 500 mg" required>
-      </label>
-      <label>
-        Stock inicial
-        <input type="number" id="stock" placeholder="Ej: 30" min="0" required>
-      </label>
-      <label>
-        Dosis diarias (tomas al día)
-        <input type="number" id="dosis" placeholder="Ej: 2" min="1" value="1" required>
-      </label>
-      <label>
-        Umbral de alerta (stock mínimo)
-        <input type="number" id="umbral" placeholder="Ej: 5" min="0" value="5">
-      </label>
-    </section>
-
-    <section class="form-box horarios-box">
-      <h2>⏰ Horarios</h2>
-      <p class="help-text">Agrega una hora por cada dosis. Formato 08:00 y elige AM o PM. También puedes abrir un reloj con el botón 🕒.</p>
-      <div id="horariosContainer" class="horarios-container" aria-label="Lista de horarios"></div>
-    </section>
-
-    <div class="form-actions">
-      <button type="submit" class="primary-btn">Guardar medicamento</button>
-    </div>
+  <form id="medForm">
+    <input type="text" id="nombre" placeholder="Nombre del medicamento" required>
+    <input type="number" id="stock" placeholder="Stock inicial" required>
+    <input type="number" id="dosis" placeholder="Dosis diaria" required>
+    <button type="submit">Agregar</button>
   </form>
 
   <ul id="listaMedicamentos"></ul>
