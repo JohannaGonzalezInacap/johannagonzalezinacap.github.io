@@ -3,6 +3,8 @@ const lista = document.getElementById("listaMedicamentos");
 const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
 const waAutoInput = document.getElementById("waAuto");
+const waAddBtn = document.getElementById("waAddBtn");
+const waList = document.getElementById("waList");
 const dosisInput = document.getElementById("dosis");
 const horariosContainer = document.getElementById("horariosContainer");
 const notifBtn = document.getElementById("notifBtn");
@@ -30,9 +32,16 @@ let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
   whatsNumber: "",
   whatsCountry: "56",
+  whatsNumbers: [],
   autoWhats: false
 };
 settings.whatsCountry = settings.whatsCountry || "56";
+if (!Array.isArray(settings.whatsNumbers)) settings.whatsNumbers = [];
+// Migración: si había un único número previo, muévelo al arreglo
+if (settings.whatsNumber) {
+  settings.whatsNumbers.push({ country: settings.whatsCountry || "", local: settings.whatsNumber });
+  settings.whatsNumber = "";
+}
 let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
   date: hoy(),
   entries: {}
@@ -450,17 +459,26 @@ function clearReminderEntry(medIdx, hora, fecha) {
 }
 
 function sendWhatsUmbral(med) {
-  const country = normalizePhone(settings.whatsCountry);
-  const local = normalizePhone(settings.whatsNumber);
-  const phone = `${country}${local}`;
+  const numbers = Array.isArray(settings.whatsNumbers) ? settings.whatsNumbers : [];
+  const fallbackCountry = normalizePhone(settings.whatsCountry);
+  const fallbackLocal = normalizePhone(settings.whatsNumber);
+  const list = numbers.length
+    ? numbers
+    : (fallbackLocal ? [{ country: fallbackCountry, local: fallbackLocal }] : []);
 
-  if (!local) {
-    showAlert("Configura un número de WhatsApp para enviar la alerta de umbral.", "error");
+  if (!list.length) {
+    showAlert("Configura al menos un número de WhatsApp para enviar la alerta de umbral.", "error");
     return;
   }
+
   const text = encodeURIComponent(`⚠️ Alerta de stock bajo: ${med.nombre}. Stock: ${med.stock}. Umbral: ${med.umbral}.`);
-  const url = `https://wa.me/${phone}?text=${text}`;
-  window.open(url, "_blank");
+
+  list.forEach(entry => {
+    const phone = `${normalizePhone(entry.country)}${normalizePhone(entry.local)}`;
+    if (!phone) return;
+    const url = `https://wa.me/${phone}?text=${text}`;
+    window.open(url, "_blank");
+  });
 }
 
 function consumosDeHoy(med) {
@@ -888,6 +906,59 @@ if (waNumberInput) {
   });
 
   updateWaPlaceholder();
+}
+
+if (waList) {
+  const renderWaList = () => {
+    waList.innerHTML = "";
+    if (!settings.whatsNumbers.length) {
+      const empty = document.createElement("li");
+      empty.className = "phone-pill empty";
+      empty.textContent = "Sin números agregados";
+      waList.appendChild(empty);
+      return;
+    }
+
+    settings.whatsNumbers.forEach((entry, idx) => {
+      const li = document.createElement("li");
+      li.className = "phone-pill";
+      const label = `+${normalizePhone(entry.country || "")} ${normalizePhone(entry.local || "")}`.trim();
+      li.textContent = label;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "pill-remove";
+      removeBtn.textContent = "✕";
+      removeBtn.addEventListener("click", () => {
+        settings.whatsNumbers.splice(idx, 1);
+        guardarSettings();
+        renderWaList();
+      });
+
+      li.appendChild(removeBtn);
+      waList.appendChild(li);
+    });
+  };
+
+  const addWaNumber = () => {
+    const country = normalizePhone(waCountrySelect?.value || "");
+    const local = normalizePhone(waNumberInput?.value || "");
+    if (!local) {
+      showAlert("Ingresa un número local para WhatsApp (solo dígitos).", "error");
+      return;
+    }
+    settings.whatsNumbers.push({ country, local });
+    settings.whatsNumber = "";
+    guardarSettings();
+    waNumberInput.value = "";
+    renderWaList();
+  };
+
+  renderWaList();
+
+  if (waAddBtn) {
+    waAddBtn.addEventListener("click", addWaNumber);
+  }
 }
 
 if (waAutoInput) {
