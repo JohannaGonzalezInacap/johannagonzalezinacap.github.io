@@ -67,11 +67,36 @@
     <small>Se abrirá WhatsApp Web/móvil con el mensaje prellenado para solo presionar enviar.</small>
   </section>
 
-  <form id="medForm">
-    <input type="text" id="nombre" placeholder="Nombre del medicamento" required>
-    <input type="number" id="stock" placeholder="Stock inicial" required>
-    <input type="number" id="dosis" placeholder="Dosis diaria" required>
-    <button type="submit">Agregar</button>
+  <form id="medForm" class="form-grid">
+    <section class="form-box">
+      <h2>🧴 Medicamento</h2>
+      <label>
+        Nombre
+        <input type="text" id="nombre" placeholder="Ej: Paracetamol 500 mg" required>
+      </label>
+      <label>
+        Stock inicial
+        <input type="number" id="stock" placeholder="Ej: 30" min="0" required>
+      </label>
+      <label>
+        Dosis diarias (tomas al día)
+        <input type="number" id="dosis" placeholder="Ej: 2" min="1" value="1" required>
+      </label>
+      <label>
+        Umbral de alerta (stock mínimo)
+        <input type="number" id="umbral" placeholder="Ej: 5" min="0" value="5">
+      </label>
+    </section>
+
+    <section class="form-box horarios-box">
+      <h2>⏰ Horarios</h2>
+      <p class="help-text">Agrega una hora por cada dosis. Formato 08:00 y elige AM o PM. También puedes abrir un reloj con el botón 🕒.</p>
+      <div id="horariosContainer" class="horarios-container" aria-label="Lista de horarios"></div>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="primary-btn">Guardar medicamento</button>
+    </div>
   </form>
 
   <ul id="listaMedicamentos"></ul>

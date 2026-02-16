@@ -1,5 +1,8 @@
 const form = document.getElementById("medForm");
 const lista = document.getElementById("listaMedicamentos");
+const dosisInput = document.getElementById("dosis");
+const umbralInput = document.getElementById("umbral");
+const horariosContainer = document.getElementById("horariosContainer");
 const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
 const waAddBtn = document.getElementById("waAddBtn");
@@ -13,6 +16,7 @@ const pushData = document.getElementById("pushData");
 
 let notifWarned = false;
 const APP_CONFIG = (typeof globalThis !== "undefined" ? (globalThis.APP_CONFIG || {}) : {});
+
 const FIREBASE_CONFIG = APP_CONFIG.firebaseConfig || null;
 const VAPID_KEY = APP_CONFIG.vapidKey || "";
 let messagingInstance = null;
@@ -30,6 +34,7 @@ let settings = JSON.parse(localStorage.getItem("configApp")) || {
 };
 settings.whatsCountry = settings.whatsCountry || "56";
 if (!Array.isArray(settings.whatsNumbers)) settings.whatsNumbers = [];
+
 // Migrar número único previo a la nueva lista
 if (settings.whatsNumber) {
   settings.whatsNumbers.push({
@@ -72,9 +77,6 @@ medicamentos = medicamentos.map(med => ({
     };
   })
 }));
-
-
-
 
 function hoy() {
   return new Date().toISOString().split("T")[0];
@@ -122,10 +124,10 @@ function normalizeHora(h) {
   return `${String(hhNum).padStart(2, "0")}:${String(mmNum).padStart(2, "0")}`;
 }
 
-  function normalizePhone(p) {
-    if (!p) return "";
-    return p.replace(/\D+/g, "");
-  }
+function normalizePhone(p) {
+  if (!p) return "";
+  return p.replace(/\D+/g, "");
+}
 
 function buildFullPhone(countryCode, localNumber) {
   const c = normalizePhone(countryCode);
@@ -149,6 +151,118 @@ function formatPhoneLabel(entry) {
   const local = normalizePhone(entry.local || "");
   if (!country) return local;
   return `+${country} ${local}`;
+}
+
+function normalizeHoraAmPm(raw, ampm) {
+  if (!raw) return null;
+  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (Number.isNaN(hour) || Number.isNaN(minutes) || minutes > 59) return null;
+
+  const ampmUpper = (ampm || "").toUpperCase();
+  if (ampmUpper === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (ampmUpper === "PM") {
+    if (hour !== 12) hour = (hour % 12) + 12;
+  }
+
+  if (hour > 23) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function buildHoraRow(idx) {
+  const row = document.createElement("div");
+  row.className = "hora-row";
+
+  const horaInput = document.createElement("input");
+  horaInput.type = "text";
+  horaInput.className = "hora-input";
+  horaInput.placeholder = "Ej: 08:00";
+  horaInput.inputMode = "numeric";
+  horaInput.setAttribute("aria-label", `Hora ${idx + 1}`);
+
+  const ampmSelect = document.createElement("select");
+  ampmSelect.className = "ampm-select";
+  ["AM", "PM"].forEach(val => {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = val;
+    ampmSelect.appendChild(opt);
+  });
+
+  const pickerBtn = document.createElement("button");
+  pickerBtn.type = "button";
+  pickerBtn.className = "picker-btn";
+  pickerBtn.textContent = "🕒";
+  pickerBtn.title = "Elegir hora";
+
+  const nativeTime = document.createElement("input");
+  nativeTime.type = "time";
+  nativeTime.step = "60";
+  nativeTime.className = "hora-native";
+  nativeTime.style.position = "absolute";
+  nativeTime.style.opacity = "0";
+  nativeTime.style.pointerEvents = "none";
+  nativeTime.tabIndex = -1;
+
+  pickerBtn.addEventListener("click", () => {
+    if (nativeTime.showPicker) {
+      nativeTime.showPicker();
+    } else {
+      nativeTime.focus();
+      nativeTime.click();
+    }
+  });
+
+  nativeTime.addEventListener("change", () => {
+    if (!nativeTime.value) return;
+    const [h, m] = nativeTime.value.split(":");
+    const hourNum = Number(h);
+    ampmSelect.value = hourNum >= 12 ? "PM" : "AM";
+    const displayHour = hourNum % 12 === 0 ? 12 : hourNum % 12;
+    horaInput.value = `${String(displayHour).padStart(2, "0")}:${m}`;
+  });
+
+  row.appendChild(horaInput);
+  row.appendChild(ampmSelect);
+  row.appendChild(pickerBtn);
+  row.appendChild(nativeTime);
+  return row;
+}
+
+function ensureHorarioRows(count) {
+  if (!horariosContainer) return;
+  const desired = Math.max(1, Number(count) || 1);
+  while (horariosContainer.children.length < desired) {
+    const row = buildHoraRow(horariosContainer.children.length);
+    horariosContainer.appendChild(row);
+  }
+  while (horariosContainer.children.length > desired) {
+    horariosContainer.removeChild(horariosContainer.lastElementChild);
+  }
+}
+
+function collectHorariosFromUI(expected) {
+  if (!horariosContainer) return [];
+  const rows = Array.from(horariosContainer.querySelectorAll(".hora-row"));
+  const horarios = [];
+  for (let i = 0; i < expected; i++) {
+    const row = rows[i];
+    if (!row) break;
+    const horaInput = row.querySelector(".hora-input");
+    const ampmSelect = row.querySelector(".ampm-select");
+    const raw = horaInput?.value || "";
+    const ampm = ampmSelect?.value || "AM";
+    const normalized = normalizeHoraAmPm(raw, ampm);
+    if (!normalized) {
+      showAlert(`Revisa el horario ${i + 1}. Usa el formato HH:MM y elige AM/PM.`, "error");
+      return null;
+    }
+    horarios.push(normalized);
+  }
+  return horarios;
 }
 
 function showAlert(message, type = "warn") {
@@ -610,7 +724,6 @@ function editar(index) {
 );
 
 if (nuevosHorarios === null) return;
-
 med.horarios = nuevosHorarios
   .split(",")
   .map(h => normalizeHora(h))
@@ -693,40 +806,46 @@ function renderFiltro() {
 form.addEventListener("submit", e => {
   e.preventDefault();
 
-  const nombre = document.getElementById("nombre").value;
-  const stock = Number(document.getElementById("stock").value);
-  const dosis = Number(document.getElementById("dosis").value);
+  const nombre = (document.getElementById("nombre")?.value || "").trim();
+  const stock = Number(document.getElementById("stock")?.value || 0);
+  const dosis = Math.max(1, Number(dosisInput?.value || 1));
+  const umbral = Number(umbralInput?.value || 5);
 
-  const horariosStr = prompt("Horarios (HH:MM separados por coma, acepta AM/PM)", "");
-  if (horariosStr === null) return;
-
-  const horarios = horariosStr
-    .split(",")
-    .map(h => normalizeHora(h))
-    .filter(Boolean);
-
-  if (horarios.length !== dosis) {
-    showAlert("La cantidad de horarios debe ser igual a las dosis diarias.", "error");
+  if (!nombre) {
+    showAlert("Ingresa el nombre del medicamento.", "error");
     return;
   }
+
+  if (Number.isNaN(stock) || stock < 0) {
+    showAlert("Ingresa un stock inicial válido.", "error");
+    return;
+  }
+
+  const horarios = collectHorariosFromUI(dosis);
+  if (!horarios || horarios.length !== dosis) return;
 
   medicamentos.push({
     nombre,
     stock,
     dosis,
-    umbral: 5,
+    umbral: Number.isNaN(umbral) ? 5 : umbral,
     horarios,
     historial: []
   });
 
-
   guardar();
   render();
   renderCalendario();
-  form.reset();
   renderFiltro();
   renderHistorialLista();
-
+  form.reset();
+  if (dosisInput) {
+    dosisInput.value = 1;
+    ensureHorarioRows(1);
+  }
+  if (umbralInput) {
+    umbralInput.value = 5;
+  }
 });
 
 /* =====================
@@ -789,6 +908,15 @@ if (filtroHistMes) {
   filtroHistMes.addEventListener("change", renderHistorialLista);
 }
 renderHistorialLista();
+
+const initialDosis = Math.max(1, Number(dosisInput?.value || 1));
+ensureHorarioRows(initialDosis);
+if (dosisInput) {
+  dosisInput.addEventListener("change", () => {
+    const count = Math.max(1, Number(dosisInput.value) || 1);
+    ensureHorarioRows(count);
+  });
+}
 
 if (waNumberInput) {
   const defaultCountry = settings.whatsCountry || "56";
