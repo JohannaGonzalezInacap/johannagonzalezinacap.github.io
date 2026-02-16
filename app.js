@@ -1,4 +1,10 @@
 const form = document.getElementById("medForm");
+const regForm = document.getElementById("regForm");
+const regNombreInput = document.getElementById("regNombre");
+const regApellidoInput = document.getElementById("regApellido");
+const regEdadInput = document.getElementById("regEdad");
+const regCountrySelect = document.getElementById("regCountry");
+const regPhoneInput = document.getElementById("regPhone");
 const lista = document.getElementById("listaMedicamentos");
 const dosisInput = document.getElementById("dosis");
 const umbralInput = document.getElementById("umbral");
@@ -24,16 +30,27 @@ let messagingRegistration = null;
 let cachedFcmToken = (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "") || "";
 let baseSwRegistration = null;
 const REGISTER_TOKEN_URL = "https://registertoken-upmcmldjtq-uc.a.run.app";
+const REGISTER_USER_URL = APP_CONFIG.registerUserUrl || "/register";
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
   whatsNumber: "",
   whatsCountry: "56",
   whatsNumbers: [],
-  autoWhats: false
+  autoWhats: false,
+  profile: {
+    nombre: "",
+    apellido: "",
+    edad: "",
+    country: "56",
+    phone: ""
+  }
 };
 settings.whatsCountry = settings.whatsCountry || "56";
 if (!Array.isArray(settings.whatsNumbers)) settings.whatsNumbers = [];
+if (!settings.profile) {
+  settings.profile = { nombre: "", apellido: "", edad: "", country: "56", phone: "" };
+}
 
 // Migrar número único previo a la nueva lista
 if (settings.whatsNumber) {
@@ -1001,6 +1018,58 @@ function renderWaList() {
   });
 }
 
+async function submitRegistration() {
+  const nombre = (regNombreInput?.value || "").trim();
+  const apellido = (regApellidoInput?.value || "").trim();
+  const edadVal = Number(regEdadInput?.value || "");
+  const country = normalizePhone(regCountrySelect?.value || settings.profile.country || "56");
+  const phoneLocal = normalizePhone(regPhoneInput?.value || "");
+  const phone = buildFullPhone(country, phoneLocal);
+
+  if (!nombre || !apellido) {
+    showAlert("Completa nombre y apellido.", "error");
+    return;
+  }
+  if (Number.isNaN(edadVal) || edadVal <= 0) {
+    showAlert("Ingresa una edad válida.", "error");
+    return;
+  }
+  if (!phone) {
+    showAlert("Ingresa un teléfono válido.", "error");
+    return;
+  }
+
+  const payload = {
+    nombre,
+    apellido,
+    edad: edadVal,
+    country,
+    phone,
+    token: cachedFcmToken || null
+  };
+
+  settings.profile = { nombre, apellido, edad: edadVal, country, phone: phoneLocal };
+  guardarSettings();
+
+  try {
+    const resp = await fetch(REGISTER_USER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(text || `HTTP ${resp.status}`);
+    }
+
+    showAlert("Registro guardado correctamente.", "success");
+  } catch (err) {
+    console.error("Register error", err);
+    showAlert("No se pudo guardar el registro. Intenta de nuevo.", "error");
+  }
+}
+
 renderWaList();
 
 renderPushUI(cachedFcmToken, Notification.permission);
@@ -1018,6 +1087,23 @@ if (pushBtn) {
       renderPushUI(sub.token, sub.permission);
       if (pushData) pushData.value = JSON.stringify({ token: sub.token }, null, 2);
     }
+  });
+}
+
+if (regForm) {
+  // Prefill profile if saved
+  if (settings.profile) {
+    regNombreInput.value = settings.profile.nombre || "";
+    regApellidoInput.value = settings.profile.apellido || "";
+    regEdadInput.value = settings.profile.edad || "";
+    const prefCountry = settings.profile.country || settings.whatsCountry || "56";
+    if (regCountrySelect) regCountrySelect.value = prefCountry;
+    regPhoneInput.value = settings.profile.phone || "";
+  }
+
+  regForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitRegistration();
   });
 }
 

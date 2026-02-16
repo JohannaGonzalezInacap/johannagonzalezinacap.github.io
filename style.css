@@ -107,6 +107,11 @@ li {
   background: #f9fff5;
 }
 
+.reg-box {
+  border: 1px solid #b3e5fc;
+  background: #f5fbff;
+}
+
 .phone-row {
   display: flex;
   gap: 12px;
