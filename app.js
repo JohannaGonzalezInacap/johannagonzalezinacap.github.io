@@ -34,6 +34,11 @@ function setActionButtonState(btn, isDone, labelDone, labelDefault) {
   btn.disabled = isDone;
 }
 
+function clearCachedToken() {
+  cachedFcmToken = "";
+  try { localStorage.removeItem("fcmToken"); } catch (_) { /* ignore */ }
+}
+
 // 🔒 Normalizar datos antiguos (muy importante)
 medicamentos = medicamentos.map(med => ({
   ...med,
@@ -283,6 +288,8 @@ async function subscribePush() {
   } catch (err) {
     console.error("FCM subscribe error", err);
     const msg = err?.message || err?.code || String(err);
+    clearCachedToken();
+    renderPushUI("", Notification.permission);
     showAlert(`No se pudo completar la suscripción en FCM: ${msg}`, "error");
     return null;
   }
@@ -770,6 +777,49 @@ if (pushBtn) {
   });
 }
 
+async function syncPushState() {
+  const perm = Notification.permission;
+
+  // Si no hay permiso, borrar token y habilitar botón
+  if (perm !== "granted") {
+    clearCachedToken();
+    renderPushUI("", perm);
+    return;
+  }
+
+  // Si ya hay token guardado, marcar activo y salir
+  if (cachedFcmToken) {
+    renderPushUI(cachedFcmToken, perm);
+    return;
+  }
+
+  // Intentar recuperar un token existente
+  const ctx = await ensureFirebaseMessaging();
+  if (!ctx) {
+    renderPushUI("", perm);
+    return;
+  }
+
+  try {
+    const token = await ctx.messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: ctx.swRegistration
+    });
+    if (token) {
+      cachedFcmToken = token;
+      try { localStorage.setItem("fcmToken", token); } catch (_) { /* ignore */ }
+      renderPushUI(token, "granted");
+      registerTokenRemote(token);
+      return;
+    }
+  } catch (err) {
+    console.error("FCM getToken sync error", err);
+  }
+
+  // Si no se obtuvo token, habilitar botón
+  renderPushUI("", perm);
+}
+
 /* =====================
     NOTIFICACIONES
 ===================== */
@@ -787,32 +837,7 @@ if (notifBtn) {
 
 // Intentar recuperar token FCM existente si el permiso ya está concedido
 (async () => {
-  if (cachedFcmToken) {
-    renderPushUI(cachedFcmToken, Notification.permission);
-    if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
-    return;
-  }
-
-  if (Notification.permission !== "granted") return;
-
-  const ctx = await ensureFirebaseMessaging();
-  if (!ctx) return;
-
-  try {
-    const token = await ctx.messaging.getToken({
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: ctx.swRegistration
-    });
-    if (token) {
-      cachedFcmToken = token;
-      if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
-      renderPushUI(token, "granted");
-      if (pushData) pushData.value = JSON.stringify({ token }, null, 2);
-      registerTokenRemote(token);
-    }
-  } catch (err) {
-    console.error("FCM getToken error", err);
-  }
+  await syncPushState();
 })();
 
 /* =====================
