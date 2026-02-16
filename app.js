@@ -6,7 +6,6 @@ const notifBtn = document.getElementById("notifBtn");
 const notifStatus = document.getElementById("notifStatus");
 const pushBtn = document.getElementById("pushBtn");
 const pushStatus = document.getElementById("pushStatus");
-const pushData = document.getElementById("pushData");
 const installBtn = document.getElementById("installBtn");
 const installStatus = document.getElementById("installStatus");
 const PROFILE_KEY = "userProfile";
@@ -250,7 +249,7 @@ async function ensureNotifPermission() {
 }
 
 function renderPushUI(token, permission) {
-  if (!pushBtn || !pushStatus || !pushData) return;
+  if (!pushBtn || !pushStatus) return;
 
   const perm = permission || Notification.permission;
   const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey;
@@ -260,16 +259,14 @@ function renderPushUI(token, permission) {
   if (!hasConfig || !hasVapid) {
     pushStatus.textContent = "Configura firebaseConfig y vapidKey en config.js";
     pushBtn.disabled = true;
-    pushData.value = "";
     return;
   }
 
   pushBtn.disabled = false;
   pushBtn.textContent = isReady ? "Suscripción FCM activa" : "Activar recordatorios push";
   pushStatus.textContent = isReady
-    ? "Firebase Cloud Messaging listo. Usa el token para enviar avisos."
+    ? "Firebase Cloud Messaging listo."
     : "Pendiente de activar.";
-  pushData.value = isReady ? JSON.stringify({ token }, null, 2) : "";
 }
 
 async function registerTokenRemote(token) {
@@ -855,7 +852,6 @@ if (pushBtn) {
     if (cachedFcmToken && Notification.permission === "granted") {
       renderPushUI(cachedFcmToken, Notification.permission);
       showAlert("Ya tienes una suscripción activa en Firebase Cloud Messaging.", "success");
-      if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
       return;
     }
 
@@ -863,7 +859,6 @@ if (pushBtn) {
     if (sub) {
       cachedFcmToken = sub.token;
       renderPushUI(sub.token, sub.permission);
-      if (pushData) pushData.value = JSON.stringify({ token: sub.token }, null, 2);
     }
   });
 }
@@ -887,7 +882,6 @@ if (notifBtn) {
 (async () => {
   if (cachedFcmToken) {
     renderPushUI(cachedFcmToken, Notification.permission);
-    if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
     return;
   }
 
@@ -905,7 +899,6 @@ if (notifBtn) {
       cachedFcmToken = token;
       if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
       renderPushUI(token, "granted");
-      if (pushData) pushData.value = JSON.stringify({ token }, null, 2);
       registerTokenRemote(token);
     }
   } catch (err) {
