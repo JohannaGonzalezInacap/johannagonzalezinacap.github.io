@@ -46,6 +46,13 @@ let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
   date: hoy(),
   entries: {}
 };
+const hasLegacyData = (() => {
+  try {
+    return Boolean(localStorage.getItem("medicamentos") || localStorage.getItem("configApp"));
+  } catch (_err) {
+    return false;
+  }
+})();
 
 // 🔒 Normalizar datos antiguos (muy importante)
 medicamentos = medicamentos.map(med => ({
@@ -69,7 +76,10 @@ medicamentos = medicamentos.map(med => ({
 userProfile = loadProfile();
 
 if (!isRegisterPage && !hasValidProfile(userProfile)) {
-  window.location.href = "./registro.html";
+  const hasData = hasLegacyData || medicamentos.length > 0;
+  if (!hasData) {
+    window.location.href = "./registro.html";
+  }
 }
 
 
@@ -330,7 +340,8 @@ function hideAlreadyGrantedActions() {
   }
 
   const storedToken = cachedFcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "");
-  const hasPushReady = perm === "granted" && (storedToken || messagingRegistration || baseSwRegistration);
+  const hasSwControl = Boolean(navigator.serviceWorker?.controller);
+  const hasPushReady = perm === "granted" && (storedToken || messagingRegistration || baseSwRegistration || hasSwControl);
 
   if (pushBtn && pushStatus && hasPushReady) {
     pushBtn.hidden = true;
@@ -1006,6 +1017,7 @@ if ("serviceWorker" in navigator) {
     if (!messagingRegistration) {
       messagingRegistration = reg;
     }
+    hideAlreadyGrantedActions();
   }).catch(err => {
     console.error("SW registration error", err);
   });
@@ -1013,6 +1025,10 @@ if ("serviceWorker" in navigator) {
 
 renderPushUI(cachedFcmToken, Notification.permission);
 hideAlreadyGrantedActions();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.ready.then(() => hideAlreadyGrantedActions()).catch(() => {});
+}
 
 if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
@@ -1045,6 +1061,7 @@ if (notifBtn) {
       showAlert("Activa las notificaciones del navegador para ver recordatorios en el móvil.", "error");
       notifWarned = true;
     }
+    hideAlreadyGrantedActions();
   });
 }
 
@@ -1138,5 +1155,8 @@ function revisarRecordatorios() {
 }
 setInterval(revisarRecordatorios, 60000);
 revisarRecordatorios();
+
+// Refresca estado de botones al volver al foco (por si permisos cambian fuera de la app)
+window.addEventListener("focus", hideAlreadyGrantedActions);
 
 
