@@ -317,6 +317,29 @@ function renderPushUI(token, permission) {
   }
 }
 
+// Oculta botones si el dispositivo ya tiene permisos concedidos (caso de usuarios antiguos)
+function hideAlreadyGrantedActions() {
+  if (!("Notification" in window)) return;
+
+  const perm = Notification.permission;
+
+  if (notifBtn && notifStatus && perm === "granted") {
+    notifBtn.hidden = true;
+    notifBtn.disabled = true;
+    notifStatus.textContent = "Notificaciones activadas.";
+  }
+
+  const storedToken = cachedFcmToken || (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "");
+  const hasPushReady = perm === "granted" && (storedToken || messagingRegistration || baseSwRegistration);
+
+  if (pushBtn && pushStatus && hasPushReady) {
+    pushBtn.hidden = true;
+    pushBtn.disabled = true;
+    pushBtn.textContent = "Suscripción FCM activa";
+    pushStatus.textContent = "Firebase Cloud Messaging listo.";
+  }
+}
+
 async function registerTokenRemote(token) {
   try {
     const resp = await fetch(REGISTER_TOKEN_URL, {
@@ -989,11 +1012,13 @@ if ("serviceWorker" in navigator) {
 }
 
 renderPushUI(cachedFcmToken, Notification.permission);
+hideAlreadyGrantedActions();
 
 if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
     if (cachedFcmToken && Notification.permission === "granted") {
       renderPushUI(cachedFcmToken, Notification.permission);
+      hideAlreadyGrantedActions();
       showAlert("Ya tienes una suscripción activa en Firebase Cloud Messaging.", "success");
       return;
     }
@@ -1002,6 +1027,7 @@ if (pushBtn) {
     if (sub) {
       cachedFcmToken = sub.token;
       renderPushUI(sub.token, sub.permission);
+      hideAlreadyGrantedActions();
     }
   });
 }
@@ -1010,6 +1036,7 @@ if (pushBtn) {
     NOTIFICACIONES
 ===================== */
 renderNotifStatus();
+hideAlreadyGrantedActions();
 
 if (notifBtn) {
   notifBtn.addEventListener("click", async () => {
@@ -1043,6 +1070,7 @@ if (notifBtn) {
       if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
       renderPushUI(token, "granted");
       registerTokenRemote(token);
+      hideAlreadyGrantedActions();
     }
   } catch (err) {
     console.error("FCM getToken error", err);
