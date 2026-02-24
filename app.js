@@ -375,8 +375,20 @@ async function registerTokenRemote(token) {
     });
 
     if (!resp.ok) {
-      console.warn("register user failed", resp.status);
+      console.warn("register user failed", resp.status);      
     }
+
+
+/* ✅ registro correcto */
+localStorage.setItem("alarmedics_registered", "true");
+
+if (payload?.telefono) {
+  localStorage.setItem("alarmedics_phone", payload.telefono);
+}
+
+if (payload?.nombreUsuario) {
+  localStorage.setItem("alarmedics_user", payload.nombreUsuario);
+}
 
   } catch (err) {
     console.warn("register user error", err);
