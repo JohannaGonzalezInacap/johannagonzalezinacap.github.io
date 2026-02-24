@@ -206,11 +206,10 @@ function setupInstallPrompt() {
 
   if (isStandaloneDisplay()) {
     setInstallStatus("App instalada");
-    if (installBtn) {
-      installBtn.hidden = true;
-      installBtn.disabled = true;
-      installBtn.textContent = "Instalada";
-    }
+    if (installBtn && isStandaloneDisplay()) {
+  installBtn.hidden = true;
+  setInstallStatus("App ya instalada");
+}
   }
 
   window.addEventListener("beforeinstallprompt", event => {
@@ -254,6 +253,9 @@ function setupInstallPrompt() {
 
 registerBaseServiceWorker();
 setupInstallPrompt();
+
+renderNotifStatus();
+hideAlreadyGrantedActions();
 
 
 function renderNotifStatus() {
