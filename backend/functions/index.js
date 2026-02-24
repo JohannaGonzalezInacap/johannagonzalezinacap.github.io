@@ -72,20 +72,60 @@ exports.registerToken = onRequest(async (req, res) => {
   }
 
   try {
-    const { token } = req.body || {};
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({ error: "Falta token" });
+
+    const { id, telefono, nombreUsuario } = req.body || {};
+
+    if (!id || !telefono || !nombreUsuario) {
+      return res.status(400).json({
+        error: "Faltan datos obligatorios"
+      });
     }
 
+    const db = admin.firestore();
+    const usersRef = db.collection("users");
     const now = admin.firestore.FieldValue.serverTimestamp();
-    const docRef = admin.firestore().collection("tokens").doc(token);
-    await docRef.set({ token, updatedAt: now, createdAt: now }, { merge: true });
+
+    await db.runTransaction(async (tx) => {
+
+      const phoneQuery = await tx.get(
+        usersRef.where("telefono", "==", telefono).limit(1)
+      );
+
+      if (!phoneQuery.empty) {
+
+        const existingDoc = phoneQuery.docs[0];
+
+        if (existingDoc.id !== id) {
+          throw new Error("telefono-ya-registrado");
+        }
+      }
+
+      const userRef = usersRef.doc(id);
+
+      tx.set(userRef, {
+        telefono,
+        nombreUsuario,
+        updatedAt: now,
+        createdAt: now
+      }, { merge: true });
+
+    });
 
     return res.json({ success: true });
 
   } catch (error) {
+
     logger.error(error);
-    return res.status(500).json({ error: error.message });
+
+    if (error.message === "telefono-ya-registrado") {
+      return res.status(409).json({
+        error: "El número de teléfono ya está registrado"
+      });
+    }
+
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 

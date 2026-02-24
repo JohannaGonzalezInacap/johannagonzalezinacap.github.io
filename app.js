@@ -82,9 +82,6 @@ if (!isRegisterPage && !hasValidProfile(userProfile)) {
   }
 }
 
-
-
-
 function hoy() {
   return new Date().toISOString().split("T")[0];
 }
@@ -352,17 +349,35 @@ function hideAlreadyGrantedActions() {
 }
 
 async function registerTokenRemote(token) {
+
   try {
+
+    const rawProfile = localStorage.getItem("userProfile");
+    if (!rawProfile) {
+      console.warn("No hay userProfile para registrar");
+      return;
+    }
+
+    const profile = JSON.parse(rawProfile);
+
+    const payload = {
+      id: token,                     // el token será el ID
+      telefono: profile.telefono,
+      nombreUsuario: profile.nombre
+    };
+
     const resp = await fetch(REGISTER_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token })
+      body: JSON.stringify(payload)
     });
+
     if (!resp.ok) {
-      console.warn("registerToken failed", resp.status);
+      console.warn("register user failed", resp.status);
     }
+
   } catch (err) {
-    console.warn("registerToken error", err);
+    console.warn("register user error", err);
   }
 }
 
