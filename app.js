@@ -905,11 +905,11 @@ function render() {
 }
 
 // Inicializar horarios guiados
-renderHorariosInputs();
+//renderHorariosInputs();
 
 if (dosisInput) {
   dosisInput.addEventListener("change", () => {
-    renderHorariosInputs();
+    //renderHorariosInputs();
   });
 }
 ;
