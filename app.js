@@ -1,4 +1,11 @@
 const form = document.getElementById("medForm");
+
+const alreadyRegistered =
+  localStorage.getItem("alarmedics_registered") === "true";
+
+if (alreadyRegistered && form) {
+  form.hidden = true;
+}
 const lista = document.getElementById("listaMedicamentos");
 const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
