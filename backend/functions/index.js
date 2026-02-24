@@ -62,6 +62,9 @@ exports.sendPush = onRequest(async (req, res) => {
 
 // Registrar token FCM en Firestore
 exports.registerToken = onRequest(async (req, res) => {
+  
+  console.log("👉 registerToken CALLED");
+  console.log("body:", req.body);
 
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
