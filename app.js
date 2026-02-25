@@ -447,16 +447,22 @@ async function ensureFirebaseMessaging() {
 }
 
 async function subscribePush() {
-  const perm = await ensureNotifPermission();
-  if (perm !== "granted") {
-    showAlert("Activa las notificaciones para obtener el token FCM.", "error");
-    return null;
+
+  if (typeof pushBtn !== "undefined" && pushBtn) {
+    pushBtn.disabled = true;
   }
 
-  const ctx = await ensureFirebaseMessaging();
-  if (!ctx) return null;
-
   try {
+
+    const perm = await ensureNotifPermission();
+    if (perm !== "granted") {
+      showAlert("Activa las notificaciones para obtener el token FCM.", "error");
+      return null;
+    }
+
+    const ctx = await ensureFirebaseMessaging();
+    if (!ctx) return null;
+
     const token = await ctx.messaging.getToken({
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: ctx.swRegistration
@@ -468,25 +474,35 @@ async function subscribePush() {
     }
 
     cachedFcmToken = token;
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("fcmToken", token);
+    localStorage.setItem("fcmToken", token);
+
+    const alreadyBackend =
+      localStorage.getItem("alarmedics_backend_registered") === "true";
+
+    if (!alreadyBackend) {
+      await registerTokenRemote(token);
     }
 
-    const backendRegistered =
-  localStorage.getItem("alarmedics_backend_registered") === "true";
-
-if (!backendRegistered) {
-  await registerTokenRemote(token);
-}
-
-  showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
+    showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
+    return { token, permission: "granted" };
 
   } catch (err) {
-  console.error("Error al crear la suscripción de notificaciones.", err);
-  const msg = err?.message || err?.code || String(err);
-  showAlert(`No se pudo completar la suscripción de notificaciones: ${msg}`, "error");
-  return null;
-}
+
+    console.error("Error al crear la suscripción de notificaciones.", err);
+    const msg = err?.message || err?.code || String(err);
+    showAlert(
+      `No se pudo completar la suscripción de notificaciones: ${msg}`,
+      "error"
+    );
+    return null;
+
+  } finally {
+
+    if (typeof pushBtn !== "undefined" && pushBtn) {
+      pushBtn.disabled = false;
+    }
+
+  }
 }
 
 
@@ -515,7 +531,6 @@ async function dispatchNotification(title, body) {
   } catch (err) {
   console.error("Error al mostrar notificación directamente desde la ventana.", err);
 }
-
   return false;
 }
 
@@ -699,7 +714,7 @@ function consumir(index) {
 
       horaAsignada = objetivo?.horario || horaReal;
     } else {
-      showAlert("Las tomas del día ya fueron registradas.", "success");
+      showAlert("Las tomas del día ya fueron registradas.", "Completo");
       return;
     }
   }
@@ -732,9 +747,9 @@ function consumir(index) {
 
   const pendientes = Math.max(0, maxTomasHoy - (tomasHoy.length + 1));
   if (pendientes > 0) {
-    showAlert(`Faltan ${pendientes} dosis de hoy para ${med.nombre}.`, "warn");
+    showAlert(`Faltan ${pendientes} dosis de hoy para ${med.nombre}.`, "Atención");
   } else {
-    showAlert(`Tomas del día de ${med.nombre} completadas.`, "success");
+    showAlert(`Tomas del día de ${med.nombre} completadas.`, "Completo");
   }
 
   guardar();
@@ -912,7 +927,7 @@ function render() {
       Horarios: ${med.horarios.length ? med.horarios.join(", ") : "No definidos"}<br>
 
 
-      <button onclick="consumir(${index})">Consumir día</button>
+      <button onclick="consumir(${index})">💊 Consumir dosis</button>
       <button onclick="editar(${index})">✏️ Editar</button>
       <button onclick="eliminar(${index})">🗑️ Eliminar</button>
 
@@ -956,11 +971,6 @@ if (waNumberInput) {
   const PLACEHOLDER_MAP = {
     "56": "Ej: 912345678",
     "58": "Ej: 4121234567",
-    "1": "Ej: 7731234567",
-    "34": "Ej: 612345678",
-    "52": "Ej: 5512345678",
-    "57": "Ej: 3012345678",
-    "51": "Ej: 987654321",
     "": "Ingresa solo dígitos locales"
   };
 
@@ -1024,7 +1034,7 @@ if (waList) {
     const country = normalizePhone(waCountrySelect?.value || "");
     const local = normalizePhone(waNumberInput?.value || "");
     if (!local) {
-      showAlert("Ingresa un número local para WhatsApp (solo dígitos).", "error");
+      showAlert("Ingresa un número válido para WhatsApp (solo dígitos).", "error");
       return;
     }
     settings.whatsNumbers.push({ country, local });
@@ -1058,7 +1068,7 @@ if ("serviceWorker" in navigator) {
     }
     hideAlreadyGrantedActions();
   }).catch(err => {
-    console.error("SW registration error", err);
+    console.error("Error al registrar el Service Worker principal", err);
   });
 }
 
