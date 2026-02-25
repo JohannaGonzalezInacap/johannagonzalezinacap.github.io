@@ -188,7 +188,7 @@ async function registerBaseServiceWorker() {
     baseSwRegistration = await navigator.serviceWorker.register("./sw.js");
     return baseSwRegistration;
   } catch (err) {
-    console.warn("Service Worker registration failed", err);
+    console.warn("No se pudo registrar el Service Worker principal.", err);
     return null;
   }
 }
@@ -289,10 +289,10 @@ async function ensureNotifPermission() {
   if (perm === "default") {
     try {
       perm = await Notification.requestPermission();
-    } catch (err) {
-      console.error("Permission request failed", err);
-      perm = "denied";
-    }
+      } catch (err) {
+    console.error("Falló la solicitud de permiso de notificaciones.", err);
+    perm = "denied";
+  }
   }
 
   renderNotifStatus();
@@ -356,9 +356,9 @@ async function registerTokenRemote(token) {
 
     const rawProfile = localStorage.getItem("userProfile");
     if (!rawProfile) {
-      console.warn("No hay userProfile para registrar");
-      return;
-    }
+  console.warn("No existe el perfil del usuario para registrar en el backend.");
+  return;
+}
 
     const profile = JSON.parse(rawProfile);
 
@@ -383,7 +383,7 @@ if (resp.status === 409) {
 }
 
 if (!resp.ok) {
-  console.warn("register user failed", resp.status);
+  console.warn("Error al registrar el usuario en el backend:", resp.status);
   return;
 }
 
@@ -398,8 +398,8 @@ if (payload?.nombreUsuario) {
 }
 
   } catch (err) {
-    console.warn("register user error", err);
-  }
+  console.warn("Error al registrar el usuario en el backend.", err);
+}
 }
 
 async function ensureFirebaseMessaging() {
@@ -423,20 +423,20 @@ async function ensureFirebaseMessaging() {
       }
       messagingInstance = firebase.messaging();
     } catch (err) {
-      console.error("Firebase init error", err);
-      showAlert("No se pudo iniciar Firebase Messaging.", "error");
-      return null;
-    }
+  console.error("Error al inicializar Firebase Messaging.", err);
+  showAlert("No se pudo iniciar Firebase Messaging.", "error");
+  return null;
+}
   }
 
   if (!messagingRegistration) {
     try {
       messagingRegistration = await registerBaseServiceWorker();
     } catch (err) {
-      console.error("SW registration error", err);
-      showAlert("No se pudo registrar el Service Worker de FCM.", "error");
-      return null;
-    }
+  console.error("Error al registrar el Service Worker para notificaciones.", err);
+  showAlert("No se pudo registrar el Service Worker de Firebase Cloud Messaging.", "error");
+  return null;
+}
     if (!messagingRegistration) {
       showAlert("No se pudo registrar el Service Worker para notificaciones.", "error");
       return null;
@@ -482,11 +482,11 @@ if (!backendRegistered) {
   showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
 
   } catch (err) {
-    console.error("FCM subscribe error", err);
-    const msg = err?.message || err?.code || String(err);
-    showAlert(`No se pudo completar la suscripción en FCM: ${msg}`, "error");
-    return null;
-  }
+  console.error("Error al crear la suscripción de notificaciones.", err);
+  const msg = err?.message || err?.code || String(err);
+  showAlert(`No se pudo completar la suscripción de notificaciones: ${msg}`, "error");
+  return null;
+}
 }
 
 
@@ -506,15 +506,15 @@ async function dispatchNotification(title, body) {
       return true;
     }
   } catch (err) {
-    console.error("SW notification error", err);
-  }
+  console.error("Error al mostrar notificación mediante Service Worker.", err);
+}
 
   try {
     new Notification(title, { body });
     return true;
   } catch (err) {
-    console.error("Window notification error", err);
-  }
+  console.error("Error al mostrar notificación directamente desde la ventana.", err);
+}
 
   return false;
 }
