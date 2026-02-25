@@ -1116,31 +1116,49 @@ if (notifBtn) {
 
 // Intentar recuperar token FCM existente si el permiso ya está concedido
 (async () => {
+
+  // si ya tenemos token en memoria, solo pinta UI
   if (cachedFcmToken) {
     renderPushUI(cachedFcmToken, Notification.permission);
+    hideAlreadyGrantedActions();
     return;
   }
 
+  // solo intentamos recuperar token si ya hay permiso
   if (Notification.permission !== "granted") return;
 
   const ctx = await ensureFirebaseMessaging();
   if (!ctx) return;
 
   try {
+
     const token = await ctx.messaging.getToken({
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: ctx.swRegistration
     });
-    if (token) {
-      cachedFcmToken = token;
-      if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
-      renderPushUI(token, "granted");
-      registerTokenRemote(token);
-      hideAlreadyGrantedActions();
+
+    if (!token) return;
+
+    cachedFcmToken = token;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("fcmToken", token);
     }
+
+    renderPushUI(token, "granted");
+
+    const alreadyBackend =
+      localStorage.getItem("alarmedics_backend_registered") === "true";
+
+    if (!alreadyBackend) {
+      await registerTokenRemote(token);
+    }
+
+    hideAlreadyGrantedActions();
+
   } catch (err) {
     console.error("FCM getToken error", err);
   }
+
 })();
 
 /* =====================
