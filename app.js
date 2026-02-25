@@ -1,11 +1,4 @@
 const form = document.getElementById("medForm");
-
-const alreadyRegistered =
-  localStorage.getItem("alarmedics_registered") === "true";
-
-if (alreadyRegistered && form) {
-  form.hidden = true;
-}
 const lista = document.getElementById("listaMedicamentos");
 const waCountrySelect = document.getElementById("waCountry");
 const waNumberInput = document.getElementById("waNumber");
@@ -375,19 +368,26 @@ async function registerTokenRemote(token) {
       nombreUsuario: profile.nombre
     };
 
-    const resp = await fetch(REGISTER_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+const resp = await fetch(REGISTER_TOKEN_URL, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload)
+});
 
-    if (!resp.ok) {
-      console.warn("register user failed", resp.status);      
-    }
+if (resp.status === 409) {
+  console.log("Usuario ya registrado en backend");
 
+  // marcamos como ya sincronizado
+  localStorage.setItem("alarmedics_backend_registered", "true");
+  return;
+}
 
-/* ✅ registro correcto */
-localStorage.setItem("alarmedics_registered", "true");
+if (!resp.ok) {
+  console.warn("register user failed", resp.status);
+  return;
+}
+
+localStorage.setItem("alarmedics_backend_registered", "true");
 
 if (payload?.telefono) {
   localStorage.setItem("alarmedics_phone", payload.telefono);
@@ -472,10 +472,14 @@ async function subscribePush() {
       localStorage.setItem("fcmToken", token);
     }
 
-    registerTokenRemote(token);
+    const backendRegistered =
+  localStorage.getItem("alarmedics_backend_registered") === "true";
 
-    showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
-    return { token, permission: "granted" };
+if (!backendRegistered) {
+  await registerTokenRemote(token);
+}
+
+  showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
 
   } catch (err) {
     console.error("FCM subscribe error", err);
@@ -484,7 +488,6 @@ async function subscribePush() {
     return null;
   }
 }
-
 
 
 async function dispatchNotification(title, body) {

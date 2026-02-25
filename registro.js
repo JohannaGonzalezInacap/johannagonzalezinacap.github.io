@@ -1,4 +1,9 @@
 (() => {
+    // Si el dispositivo ya fue registrado, no mostrar formulario
+  if (localStorage.getItem("alarmedics_registered") === "true") {
+    window.location.href = "./index.html";
+    return;
+  }
   const form = document.getElementById("registerForm");
   const nombre = document.getElementById("regNombre");
   const apellido = document.getElementById("regApellido");
@@ -91,17 +96,19 @@
     const payload = {
       nombre: nombre.value.trim(),
       apellido: apellido.value.trim(),
-      edad: Number(edad.value),
-      country: countryCode,
       telefono: phoneFull,
       telefonoLocal: phoneLocal,
-      ciudad: ciudad.value.trim()
     };
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      window.location.href = "./index.html";
-    } catch (err) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+  // marca que este dispositivo ya pasó por registro
+  localStorage.setItem("alarmedics_registered", "true");
+
+  window.location.href = "./index.html";
+
+} catch (err) {
       console.error("No se pudo guardar el perfil", err);
       alert("No se pudo guardar el registro en este dispositivo.");
     }
