@@ -69,14 +69,14 @@
     return true;
   }
 
-  async function ensureServiceWorker() {
-    if (!("serviceWorker" in navigator)) return;
-    try {
-      await navigator.serviceWorker.register("./sw.js");
-    } catch (err) {
-      console.warn("No se pudo registrar el service worker en registro", err);
-    }
-  }
+  // async function ensureServiceWorker() {
+  //   if (!("serviceWorker" in navigator)) return;
+  //   try {
+  //     await navigator.serviceWorker.register("./sw.js");
+  //   } catch (err) {
+  //     console.warn("No se pudo registrar el service worker en registro", err);
+  //   }
+  // }
 
   form?.addEventListener("submit", event => {
     event.preventDefault();
@@ -98,9 +98,6 @@
 
     try {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-
-  // marca que este dispositivo ya pasó por registro
-  localStorage.getItem("alarmedics_backend_registered") === "true";
   window.location.href = "./index.html";
 
 } catch (err) {
@@ -111,7 +108,7 @@
 
   setInitialValues();
   updatePlaceholder();
-  ensureServiceWorker();
+  //ensureServiceWorker();
 
   country?.addEventListener("change", updatePlaceholder);
 })();

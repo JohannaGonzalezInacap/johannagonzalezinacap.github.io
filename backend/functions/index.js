@@ -103,20 +103,30 @@ exports.registerToken = onRequest(async (req, res) => {
         }
       }
 
-      const userRef = usersRef.doc(id);
+    const userRef = usersRef.doc(id);
 
+    const snap = await tx.get(userRef);
+      // actualización del registro
+    if (snap.exists) {
+      tx.update(userRef, {
+        telefono,
+        nombreUsuario,
+        updatedAt: now
+      });
+    } else {
+      // nuevo registro
       tx.set(userRef, {
         telefono,
         nombreUsuario,
-        updatedAt: now,
-        createdAt: now
-      }, { merge: true });
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  });
 
-    });
+  return res.json({ success: true });
 
-    return res.json({ success: true });
-
-  } catch (error) {
+} catch (error) {
 
     logger.error(error);
 
@@ -148,7 +158,7 @@ exports.sendPushToAll = onRequest(async (req, res) => {
   const link = req.body?.link || "https://johannagonzalezinacap.github.io/med-reminder/";
 
   try {
-    const snap = await admin.firestore().collection("tokens").limit(500).get();
+    const snap = await admin.firestore().collection("users").limit(500).get();
     const tokens = snap.docs.map(d => d.id);
 
     if (!tokens.length) {
@@ -169,12 +179,19 @@ exports.sendPushToAll = onRequest(async (req, res) => {
       .map(x => x.idx);
 
     if (invalidIdx.length) {
-      const batch = admin.firestore().batch();
-      invalidIdx.forEach(i => {
-        const t = tokens[i];
-        if (t) batch.delete(admin.firestore().collection("tokens").doc(t));
-      });
-      await batch.commit();
+  const batch = admin.firestore().batch();
+
+  invalidIdx.forEach(i => {
+    const t = tokens[i];
+    if (t) {
+      batch.delete(
+        admin.firestore().collection("users").doc(t)
+      );
+    }
+  });
+
+  await batch.commit();
+
     }
 
     return res.json({
